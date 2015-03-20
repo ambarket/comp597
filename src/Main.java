@@ -48,7 +48,7 @@ class csvGeneratorThread extends Thread {
 		// List<String> titles = new LinkedList<String>();
 		// List<String> userId = new LinkedList<String>();
 		// String[] productIds = new String[22204];
-		// HashMap<String, int[]> usersToRatings = new HashMap<String, int[]>();
+		// HashMap<String, int[]> usersToReviews = new HashMap<String, int[]>();
 
 		try {
 			// use FileWriter constructor that specifies open for appending
@@ -155,10 +155,15 @@ public class Main {
 		long startTime, endTime, duration;
 		startTime = System.nanoTime();
 
-		findKMostReviewsProducts(0,
+		/*findKMostReviewsProducts(0,
 				"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
 				"Amazon_Instant_Video.txt",
 				"Amazon_Instant_Video_Most_Reviewed.csv");
+		*/
+		findKMostReviewsProductsWithReviews(0,
+		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
+		"Amazon_Instant_Video.txt",
+		"Amazon_Instant_Video");
 		// findKMostReviewsProducts(0,
 		// "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\", "Books.txt",
 		// "Books_Most_Reviewed.csv");
@@ -172,15 +177,9 @@ public class Main {
 		 * (InterruptedException e) { // TODO Auto-generated catch block
 		 * e.printStackTrace(); }
 		 */
-
-		// List<String> titles = new LinkedList<String>();
-		// List<String> userId = new LinkedList<String>();
-		// String[] productIds = new String[22204];
-		// HashMap<String, int[]> usersToRatings = new HashMap<String, int[]>();
 	}
 
-	public static void findKMostReviewsProducts(int k, String basePath,
-			String inputFile, String outputFile) throws IOException {
+	public static void findKMostReviewsProducts(int k, String basePath, String inputFile, String outputFile) throws IOException {
 		long startTime, endTime, duration;
 		startTime = System.nanoTime();
 
@@ -213,14 +212,17 @@ public class Main {
 		duration = (endTime - startTime) / 1000000 / 1000;
 		System.out.println("Wrote " + k + " most reviewed to file in "
 				+ duration + " seconds.");
+		
 	}
 	
-	public static void findKMostReviewsProductsWithRatings(int k, String basePath,String inputFile, String outputFile) throws IOException {
+	
+	public static void findKMostReviewsProductsWithReviews(int k, String basePath,String inputFile, String outputFilePrefix) throws IOException {
 		long startTime, endTime, duration;
 		startTime = System.nanoTime();
 
-		HashMap<String, ProductRecord> productCounts = getProductRecords(basePath, inputFile);
-
+		HashMap<String, ProductCount> productCounts = getProductCounts(basePath, inputFile);
+		HashMap<String, ReviewerCount> reviewerCounts = getReviewerCountsOnProducts(productCounts, basePath, inputFile);
+		
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
 		System.out.println("Read in counts of " + productCounts.size()
@@ -228,31 +230,57 @@ public class Main {
 
 		startTime = System.nanoTime();
 
-		PriorityQueue<ProductRecord> sortedProducts = new PriorityQueue<ProductRecord>();
-		sortedProducts.addAll(productCounts.values());
-
-		k = productCounts.size();
-		CsvWriter csvOutput = new CsvWriter(new FileWriter(basePath
-				+ outputFile), ',');
-		for (int i = 0; i < k; i++) {
-			ProductRecord rec = sortedProducts.poll();
-			csvOutput.write(rec.productID);
-			int numOfRatings =  rec.ratings.size();
-			for (int j = 0; j < numOfRatings; j--) {
-				csvOutput.write(String.valueOf(rec.reviewCount));
-			}
-			csvOutput.write(String.valueOf(rec.reviewCount));
-			csvOutput.endRecord();
-		}
-
-		csvOutput.close();
+		outputProductCountsToCSV(productCounts, basePath, outputFilePrefix + "MostReviewedProducts.csv");
+		outputReviewerCountsToCSV(reviewerCounts, basePath, outputFilePrefix + "MostCommonReviewersOfThoseProducts.csv");
 
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
 		System.out.println("Wrote " + k + " most reviewed to file in "
 				+ duration + " seconds.");
 	}
-
+	
+	public static void outputReviewerCountsToCSV(HashMap<String, ReviewerCount> reviewerCounts, String basePath, String outputFile) {
+		PriorityQueue<ReviewerCount> sortedReviewers = new PriorityQueue<ReviewerCount>();
+		sortedReviewers.addAll(reviewerCounts.values());
+		
+		int k = reviewerCounts.size();
+		CsvWriter csvOutput;
+		try {
+			csvOutput = new CsvWriter(new FileWriter(basePath + outputFile), ',');
+			for (int i = 0; i < k; i++) {
+				ReviewerCount rec = sortedReviewers.poll();
+				csvOutput.write(rec.userID);
+				csvOutput.write(String.valueOf(rec.reviewCount));
+				csvOutput.endRecord();
+			}
+			csvOutput.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void outputProductCountsToCSV(HashMap<String, ProductCount> productCounts, String basePath, String outputFile) {
+		PriorityQueue<ProductCount> sortedProducts = new PriorityQueue<ProductCount>();
+		sortedProducts.addAll(productCounts.values());
+		
+		int k = productCounts.size();
+		CsvWriter csvOutput;
+		try {
+			csvOutput = new CsvWriter(new FileWriter(basePath + outputFile), ',');
+			for (int i = 0; i < k; i++) {
+				ProductCount rec = sortedProducts.poll();
+				csvOutput.write(rec.productID);
+				csvOutput.write(String.valueOf(rec.reviewCount));
+				csvOutput.endRecord();
+			}
+			csvOutput.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	public static HashMap<String, ProductCount> getProductCounts(
 			String basePath, String inputFile) {
 		HashMap<String, ProductCount> counts = new HashMap<String, ProductCount>();
@@ -286,6 +314,53 @@ public class Main {
 
 		return counts;
 	}
+	
+	public static HashMap<String, ReviewerCount> getReviewerCountsOnProducts(HashMap<String, ProductCount> products, String basePath, String inputFile) {
+		HashMap<String, ReviewerCount> counts = new HashMap<String, ReviewerCount>();
+		
+		try {
+			// use FileWriter constructor that specifies open for appending
+			BufferedReader br = new BufferedReader(new FileReader(new File(basePath + inputFile)));
+
+			String line;
+			Pattern startField = null;
+			// includedFields =
+			// Pattern.compile("^(product|review)/(productId:|title:|price:|userId:|profileName:|helpfulness:|score:|time:|summary:|text:)");
+			startField = Pattern.compile("^product/productId:");
+			Pattern non_printable = Pattern.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
+
+			while ((line = br.readLine()) != null) {
+				if (startField.matcher(line).find()) {
+					String productID = line
+							.replaceAll(startField.pattern(), "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					// Skip title and price
+					br.readLine();
+					br.readLine();
+					String userID = br.readLine()
+							.replaceAll("^review/userId:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					
+					// Skip if its unknown
+					if (!userID.equals("unknown")) {
+						if (products.containsKey(productID)) {
+							if (!counts.containsKey(userID)) {
+								counts.put(userID, new ReviewerCount(userID, 1));
+							} else {
+								counts.get(userID).reviewCount++;
+							}
+						}
+					}
+				}
+			}
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return counts;
+	}
+	
 
 	public static HashMap<String, ProductRecord> getProductRecords(
 			String basePath, String inputFile) {
@@ -328,7 +403,7 @@ public class Main {
 					String userID = record[3]
 							.replaceAll("^product/userId:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					int rating = Integer.valueOf(record[7]
+					int Review = Integer.valueOf(record[7]
 							.replaceAll("^product/score:", "")
 							.replaceAll(non_printable.pattern(), "").trim());
 					String helpfulness = record[8]
@@ -341,9 +416,9 @@ public class Main {
 					}
 					
 					if (!records.containsKey(productID)) {
-						records.put(productID, new ProductRecord(productID, productTitle,new Rating(userID, rating, helpfulness)));
+						records.put(productID, new ProductRecord(productID, productTitle,new Review(userID, Review, helpfulness)));
 					} else {
-						records.get(lineValue).ratings.add(new Rating(userID,rating, helpfulness));
+						records.get(lineValue).reviews.add(new Review(userID,Review, helpfulness));
 					}
 				}
 			}
@@ -356,40 +431,25 @@ public class Main {
 	}
 }
 
-class Rating implements Comparable<Rating> {
-	String userID;
-	int rating;
-	String helpfulness;
 
-	public Rating(String userID, int rating, String helpfulness) {
-		this.userID = userID;
-		this.rating = rating;
-		this.helpfulness = helpfulness;
-	}
-
-	@Override
-	public int compareTo(Rating o) {
-		return userID.compareTo(o.userID);
-	}
-}
 
 class ProductRecord implements Comparable<ProductRecord> {
 	String productID;
-	PriorityQueue<Rating> ratings;
+	PriorityQueue<Review> reviews;
 
-	public ProductRecord(String productID, String title, Rating firstRating) {
+	public ProductRecord(String productID, String title, Review firstReview) {
 		this.productID = productID;
-		this.ratings = new PriorityQueue<Rating>();
-		this.ratings.add(firstRating);
+		this.reviews = new PriorityQueue<Review>();
+		this.reviews.add(firstReview);
 	}
 
 	public int compareTo(ProductRecord that) {
-		return that.ratings.size() - this.ratings.size();
+		return that.reviews.size() - this.reviews.size();
 	}
 
 	@Override
 	public int hashCode() {
-		return 37 * ratings.size() + productID.hashCode();
+		return 37 * reviews.size() + productID.hashCode();
 	}
 
 	@Override
@@ -419,5 +479,29 @@ class ProductCount implements Comparable<ProductCount> {
 	@Override
 	public boolean equals(Object that) {
 		return productID.equals(((ProductRecord) that).productID);
+	}
+}
+
+class ReviewerCount implements Comparable<ReviewerCount> {
+	String userID;
+	int reviewCount;
+
+	public ReviewerCount(String userID, int reviewCount) {
+		this.userID = userID;
+		this.reviewCount = reviewCount;
+	}
+
+	public int compareTo(ReviewerCount that) {
+		return that.reviewCount - this.reviewCount;
+	}
+
+	@Override
+	public int hashCode() {
+		return 37 * reviewCount + userID.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object that) {
+		return userID.equals(((ReviewerCount) that).userID);
 	}
 }
