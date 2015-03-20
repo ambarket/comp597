@@ -11,8 +11,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -22,155 +26,30 @@ import com.csvreader.CsvWriter;
 // Maybe need something more like the netflix dataset
 // column for each customer,row for each title
 
-class csvGeneratorThread extends Thread {
-	private String basePath;
-	private String inputFile;
-	private String outputFile;
-	private boolean withText;
 
-	public csvGeneratorThread(String basePath, String inputFile,
-			String outputFile, boolean withText) {
-		this.basePath = basePath;
-		this.inputFile = inputFile;
-		this.outputFile = outputFile;
-		this.withText = withText;
-	}
-
-	public void run() {
-		long startTime, endTime, duration;
-		startTime = System.nanoTime();
-
-		/*
-		 * String inputFile = "Amazon_Instant_Video.txt"; String outputFile =
-		 * "Amazon_Instant_Video_no_text2.csv"; boolean withText = false;
-		 */
-
-		// List<String> titles = new LinkedList<String>();
-		// List<String> userId = new LinkedList<String>();
-		// String[] productIds = new String[22204];
-		// HashMap<String, int[]> usersToReviews = new HashMap<String, int[]>();
-
-		try {
-			// use FileWriter constructor that specifies open for appending
-			BufferedReader br = new BufferedReader(new FileReader(new File(
-					basePath + inputFile)));
-			CsvWriter csvOutput = new CsvWriter(new FileWriter(basePath
-					+ outputFile), ',');
-
-			// Write the header
-			csvOutput.write("product.productId");
-			csvOutput.write("product.title");
-			csvOutput.write("product.price");
-			csvOutput.write("review.userId");
-			csvOutput.write("review.profileName");
-			csvOutput.write("review.helpfulness_orig");
-			csvOutput.write("review/helpfulness");
-			csvOutput.write("review.score");
-			csvOutput.write("review.time");
-			if (withText) {
-				csvOutput.write("review.summary");
-				csvOutput.write("review.text");
-			}
-			csvOutput.endRecord();
-
-			String line;
-			int colCount = 0;
-			Pattern includedFields = null;
-			Pattern textFields = null;
-			int numberOfColumns = 0;
-			if (withText) {
-				includedFields = Pattern
-						.compile("^(product|review)/(productId:|title:|price:|userId:|profileName:|helpfulness:|score:|time:|summary:|text:)");
-				textFields = Pattern
-						.compile("^(product|review)/(productId:|title:|userId:|profileName:|helpfulness:|summary:|text:)");
-				numberOfColumns = 11;
-			} else {
-				includedFields = Pattern
-						.compile("^(product|review)/(productId:|title:|price:|userId:|profileName:|helpfulness:|score:|time:)");
-				textFields = Pattern
-						.compile("^(product|review)/(productId:|title:|userId:|profileName:|helpfulness:)");
-				numberOfColumns = 9;
-			}
-
-			Pattern numericFields = Pattern
-					.compile("^(product|review)/(price:|score:|time:)");
-			Pattern non_printable = Pattern
-					.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
-
-			while ((line = br.readLine()) != null) {
-				String lineValue = null;
-				if (includedFields.matcher(line).find()) {
-					lineValue = line.replaceAll(includedFields.pattern(), "")
-							.replaceAll(non_printable.pattern(), "").trim();
-				} else {
-					continue;
-				}
-
-				/*
-				 * Should I really do this, or is it better to leave it as
-				 * unknwon if (lineValue.equals("unknown")) { lineValue = "NA";
-				 * }
-				 */
-				if (textFields.matcher(line).find()) {
-					csvOutput.write("\"" + lineValue + "\"");
-					colCount++;
-
-					if (line.startsWith("review/helpfulness:")) {
-						String[] helpfulness = lineValue.split("/");
-						if (helpfulness.length == 2
-								&& !helpfulness[1].equals("0")) {
-							csvOutput.write(String.valueOf((Double
-									.parseDouble(helpfulness[0]) / Double
-									.parseDouble(helpfulness[1]))));
-						} else {
-							csvOutput.write("0");
-						}
-						colCount++;
-					}
-				} else if (numericFields.matcher(line).find()) {
-					csvOutput.write(lineValue);
-					colCount++;
-				}
-				if (colCount == numberOfColumns) {
-					csvOutput.endRecord();
-					colCount = 0;
-				}
-			}
-			csvOutput.close();
-			br.close();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		endTime = System.nanoTime();
-		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Processed file in " + duration + " seconds.");
-	}
-
-}
 
 public class Main {
 	public static void main(String[] args) throws IOException {
 		long startTime, endTime, duration;
 		startTime = System.nanoTime();
 
-		/*findKMostReviewsProducts(0,
-				"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
-				"Amazon_Instant_Video.txt",
-				"Amazon_Instant_Video_Most_Reviewed.csv");
-		*/
-		findKMostReviewsProductsWithReviews(0,
+		/*
+		findKMostReviewsProductsWithReviews(1000, 50000,
 		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
 		"Amazon_Instant_Video.txt",
 		"Amazon_Instant_Video");
-		// findKMostReviewsProducts(0,
-		// "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\", "Books.txt",
-		// "Books_Most_Reviewed.csv");
-		// findKMostReviewsProducts(0,
-		// "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
-		// "Software.txt", "Software_Most_Reviewed.csv");
-
+		*/
+		
+		/*
+		 findKMostReviewsProductsWithReviews(1000,
+		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\", "Books.txt",
+		 "Books");
+		*/
+		
+		findKMostReviewsProductsWithReviews(100, 1000,
+		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
+		"Software.txt", "Software");
+		 
 		/*
 		 * csvGeneratorThread t = new csvGeneratorThread(basePath, inputFile,
 		 * outputFile, withText); t.start(); try { t.join(); } catch
@@ -178,65 +57,105 @@ public class Main {
 		 * e.printStackTrace(); }
 		 */
 	}
-
-	public static void findKMostReviewsProducts(int k, String basePath, String inputFile, String outputFile) throws IOException {
-		long startTime, endTime, duration;
-		startTime = System.nanoTime();
-
-		HashMap<String, ProductCount> productCounts = getProductCounts(
-				basePath, inputFile);
-
-		endTime = System.nanoTime();
-		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Read in counts of " + productCounts.size()
-				+ " products in " + duration + " seconds.");
-
-		startTime = System.nanoTime();
-
-		PriorityQueue<ProductCount> sortedProducts = new PriorityQueue<ProductCount>();
-		sortedProducts.addAll(productCounts.values());
-
-		k = productCounts.size();
-		CsvWriter csvOutput = new CsvWriter(new FileWriter(basePath
-				+ outputFile), ',');
-		for (int i = 0; i < k; i++) {
-			ProductCount rec = sortedProducts.poll();
-			csvOutput.write(rec.productID);
-			csvOutput.write(String.valueOf(rec.reviewCount));
-			csvOutput.endRecord();
-		}
-
-		csvOutput.close();
-
-		endTime = System.nanoTime();
-		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Wrote " + k + " most reviewed to file in "
-				+ duration + " seconds.");
-		
-	}
 	
 	
-	public static void findKMostReviewsProductsWithReviews(int k, String basePath,String inputFile, String outputFilePrefix) throws IOException {
+	public static void findKMostReviewsProductsWithReviews(int numOfProducts, int numOfReviewers, String basePath,String inputFile, String outputFilePrefix) throws IOException {
 		long startTime, endTime, duration;
 		startTime = System.nanoTime();
 
 		HashMap<String, ProductCount> productCounts = getProductCounts(basePath, inputFile);
 		HashMap<String, ReviewerCount> reviewerCounts = getReviewerCountsOnProducts(productCounts, basePath, inputFile);
+		outputProductCountsToCSV(productCounts, basePath, outputFilePrefix + "MostReviewedProducts.csv");
+		outputReviewerCountsToCSV(reviewerCounts, basePath, outputFilePrefix + "MostCommonReviewersOfThoseProducts.csv");
 		
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Read in counts of " + productCounts.size()
-				+ " products in " + duration + " seconds.");
+		System.out.println("Read and saved sorted counts of " + productCounts.size() + " products and " + reviewerCounts.size() + " reviewers of those products in " + duration + " seconds.");
+		
 
 		startTime = System.nanoTime();
-
-		outputProductCountsToCSV(productCounts, basePath, outputFilePrefix + "MostReviewedProducts.csv");
-		outputReviewerCountsToCSV(reviewerCounts, basePath, outputFilePrefix + "MostCommonReviewersOfThoseProducts.csv");
+		
+		ArrayList<ProductCount> tmpProductList = new ArrayList<ProductCount>(productCounts.values());
+		Collections.sort(tmpProductList);
+		ArrayList<ProductCount> sampledProductList = new ArrayList<ProductCount>(numOfProducts);
+		for (int i = 0; i < numOfProducts; i++) {
+			sampledProductList.add(tmpProductList.get(i));
+		}
+		productCounts = null;
+		tmpProductList = null;
+		
+		ArrayList<ReviewerCount> tmpReviewerList = new ArrayList<ReviewerCount>(reviewerCounts.values());
+		Collections.sort(tmpReviewerList);
+		ArrayList<ReviewerCount> sampledReviewerList = new ArrayList<ReviewerCount>(numOfReviewers);
+		for (int i = 0; i < numOfReviewers; i++) {
+			sampledReviewerList.add(tmpReviewerList.get(i));
+		}
+		reviewerCounts = null;
+		tmpReviewerList = null;
+	
+		
+		HashMap<String, ProductCount> sampledProductMap = new HashMap<String, ProductCount>(numOfProducts);
+		HashMap<String, ReviewerCount> sampledReviewerMap = new HashMap<String, ReviewerCount>(numOfReviewers);
+		for (int i = 0; i < numOfProducts; i++) {
+			sampledProductMap.put(sampledProductList.get(i).productID, sampledProductList.get(i));
+		}
+		for (int i = 0; i < numOfReviewers; i++) {
+			sampledReviewerMap.put(sampledReviewerList.get(i).userID, sampledReviewerList.get(i));
+		}
 
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Wrote " + k + " most reviewed to file in "
-				+ duration + " seconds.");
+		System.out.println("Sorted and sampled " + sampledProductList.size() + " products and " + sampledReviewerList.size() + " reviewers of those products in " + duration + " seconds.");
+		
+		startTime = System.nanoTime();
+		HashMap<String, ProductRecord> productRecords = getProductRecords(sampledProductMap, sampledReviewerMap, basePath, inputFile);
+		outputFinalCSV(productRecords, sampledProductList, sampledReviewerList, basePath, outputFilePrefix);
+		
+		endTime = System.nanoTime();
+		duration = (endTime - startTime) / 1000000 / 1000;
+		System.out.println("Retrieved product records and output to final csv in " + duration + " seconds");
+		/*
+		System.out.println(productRecords.size());
+		for (ProductRecord pr : productRecords.values()) {
+			System.out.println(pr.toString());
+		}
+		*/
+	}
+	
+	public static void outputFinalCSV(HashMap<String, ProductRecord> productRecords, ArrayList<ProductCount> sampledProductList, ArrayList<ReviewerCount>  sampledReviewerList, String basePath, String outputFilePrefix) {
+
+		CsvWriter csvOutput;
+		try {
+			csvOutput = new CsvWriter(new FileWriter(basePath + outputFilePrefix + "final.csv"), ',');
+			// OutputHeader
+			for (ProductCount pc : sampledProductList) {
+				csvOutput.write(pc.productTitle);
+			}
+			csvOutput.endRecord();
+			//Output each record
+			for (ReviewerCount rc : sampledReviewerList) {
+				for (ProductCount pc : sampledProductList) {
+					ProductRecord rec = productRecords.get(pc.productID);
+					if (rec.reviews.containsKey(rc.userID)) {
+						csvOutput.write(rec.reviews.get(rc.userID).rating);
+					}
+					else {
+						csvOutput.write("0");
+					}
+					
+				}
+				csvOutput.endRecord();
+				
+			}
+
+			
+
+			csvOutput.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 	
 	public static void outputReviewerCountsToCSV(HashMap<String, ReviewerCount> reviewerCounts, String basePath, String outputFile) {
@@ -287,24 +206,29 @@ public class Main {
 
 		try {
 			// use FileWriter constructor that specifies open for appending
-			BufferedReader br = new BufferedReader(new FileReader(new File(
-					basePath + inputFile)));
+			BufferedReader br = new BufferedReader(new FileReader(new File(basePath + inputFile)));
 
 			String line;
-			Pattern includedFields = null;
-
-			includedFields = Pattern.compile("^product/productId:");
+			Pattern startField = null;
+			// includedFields =
+			// Pattern.compile("^(product|review)/(productId:|title:|price:|userId:|profileName:|helpfulness:|score:|time:|summary:|text:)");
+			startField = Pattern.compile("^product/productId:");
+			Pattern non_printable = Pattern.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
 
 			while ((line = br.readLine()) != null) {
-				String lineValue = null;
-				if (includedFields.matcher(line).find()) {
-					lineValue = line.replaceAll(includedFields.pattern(), "")
-							.trim();
-					if (!counts.containsKey(lineValue)) {
-						counts.put(lineValue, new ProductCount(lineValue, 1));
-					} else {
-						counts.get(lineValue).reviewCount += 1;
-					}
+				if (startField.matcher(line).find()) {
+					String productID = line
+							.replaceAll(startField.pattern(), "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					String title = br.readLine()
+							.replaceAll("^product/title:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					
+							if (!counts.containsKey(productID)) {
+								counts.put(productID, new ProductCount(productID, title, 1));
+							} else {
+								counts.get(productID).reviewCount++;
+							}
 				}
 			}
 			br.close();
@@ -362,8 +286,7 @@ public class Main {
 	}
 	
 
-	public static HashMap<String, ProductRecord> getProductRecords(
-			String basePath, String inputFile) {
+	public static HashMap<String, ProductRecord> getProductRecords(HashMap<String, ProductCount> products, HashMap<String, ReviewerCount> reviewers, String basePath, String inputFile) {
 		HashMap<String, ProductRecord> records = new HashMap<String, ProductRecord>();
 
 		try {
@@ -379,12 +302,11 @@ public class Main {
 			Pattern non_printable = Pattern
 					.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
 
-			int unknownCount = 0;
+			String[] record = new String[10];
 			while ((line = br.readLine()) != null) {
 				String lineValue = null;
 				if (startField.matcher(line).find()) {
-					String[] record = new String[10];
-					record[0] = lineValue;
+					record[0] = line;
 					for (int i = 1; i < 10; i++) {
 						line = br.readLine();
 						if (line == null) {
@@ -401,24 +323,21 @@ public class Main {
 							.replaceAll("^product/title:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
 					String userID = record[3]
-							.replaceAll("^product/userId:", "")
+							.replaceAll("^review/userId:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					int Review = Integer.valueOf(record[7]
-							.replaceAll("^product/score:", "")
-							.replaceAll(non_printable.pattern(), "").trim());
-					String helpfulness = record[8]
-							.replaceAll("^product/helpfulness:", "")
+					String rating = record[6]
+							.replaceAll("^review/score:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					String helpfulness = record[5]
+							.replaceAll("^review/helpfulness:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
 					
-					if (userID.equals("unknown")) {
-						userID = "unknown" + unknownCount;
-						unknownCount++;
-					}
-					
-					if (!records.containsKey(productID)) {
-						records.put(productID, new ProductRecord(productID, productTitle,new Review(userID, Review, helpfulness)));
-					} else {
-						records.get(lineValue).reviews.add(new Review(userID,Review, helpfulness));
+					if (products.containsKey(productID) && reviewers.containsKey(userID)) {
+						if (!records.containsKey(productID)) {
+							records.put(productID, new ProductRecord(productID, productTitle, new Review(userID, rating, helpfulness)));
+						} else {
+							records.get(productID).reviews.put(userID, new Review(userID,rating, helpfulness));
+						}
 					}
 				}
 			}
@@ -435,12 +354,12 @@ public class Main {
 
 class ProductRecord implements Comparable<ProductRecord> {
 	String productID;
-	PriorityQueue<Review> reviews;
+	HashMap<String, Review> reviews;
 
 	public ProductRecord(String productID, String title, Review firstReview) {
 		this.productID = productID;
-		this.reviews = new PriorityQueue<Review>();
-		this.reviews.add(firstReview);
+		this.reviews = new HashMap<String, Review>();
+		this.reviews.put(firstReview.userID, firstReview);
 	}
 
 	public int compareTo(ProductRecord that) {
@@ -456,14 +375,20 @@ class ProductRecord implements Comparable<ProductRecord> {
 	public boolean equals(Object that) {
 		return productID.equals(((ProductRecord) that).productID);
 	}
+	
+	public String toString() {
+		return this.productID + ": " + this.reviews.size() + " reviews";
+	}
 }
 
 class ProductCount implements Comparable<ProductCount> {
 	String productID;
+	String productTitle;
 	int reviewCount;
 
-	public ProductCount(String productID, int reviewCount) {
+	public ProductCount(String productID, String productTitle, int reviewCount) {
 		this.productID = productID;
+		this.productTitle = productTitle;
 		this.reviewCount = reviewCount;
 	}
 
