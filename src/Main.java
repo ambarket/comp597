@@ -42,13 +42,13 @@ public class Main {
 		
 		
 		findKMostReviewsProductsWithReviews(100, 1000,
-		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\", "Books.txt",
+		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Books\\", "Books.txt",
 		 "Books");
 		
 		
 		/*
 		findKMostReviewsProductsWithReviews(100, 1000,
-		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
+		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\",
 		"Software.txt", "Software");
 		 */
 		/*
@@ -61,73 +61,126 @@ public class Main {
 	
 	
 	public static void findKMostReviewsProductsWithReviews(int numOfProducts, int numOfReviewers, String basePath,String inputFile, String outputFilePrefix) throws IOException {
+		//----------------------------READ, SORT, PRUNE, and WRITE MOST REVIEWED PRODUCTS-----------------------------------------------
+		
 		long startTime, endTime, duration;
 		startTime = System.nanoTime();
 
 		HashMap<String, ProductCount> productCounts = getProductCounts(basePath, inputFile);
-		HashMap<String, ReviewerCount> reviewerCounts = getReviewerCountsOnProducts(productCounts, basePath, inputFile);
-		outputProductCountsToCSV(productCounts, basePath, outputFilePrefix + "MostReviewedProducts.csv");
-		outputReviewerCountsToCSV(reviewerCounts, basePath, outputFilePrefix + "MostCommonReviewersOfThoseProducts.csv");
 		
-		endTime = System.nanoTime();
-		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Read and saved sorted counts of " + productCounts.size() + " products and " + reviewerCounts.size() + " reviewers of those products in " + duration + " seconds.");
-		
-
-		startTime = System.nanoTime();
-		
-		ArrayList<ProductCount> tmpProductList = new ArrayList<ProductCount>(productCounts.values());
-		Collections.sort(tmpProductList);
+		ArrayList<ProductCount> sortedProductList = new ArrayList<ProductCount>(productCounts.values());
+		Collections.sort(sortedProductList);
 		int removed = 0;
 		for (int i = 0; i < numOfProducts; i++) {
-			for (int j = 1; j < 500; j++) {
-				if (i+j < tmpProductList.size()) {
-					if (tmpProductList.get(i+j).equals(tmpProductList.get(i))) {
-						tmpProductList.remove(i+j);
+			for (int j = 1; j < 1000; j++) {
+				if (i+j < sortedProductList.size()) {
+					if (sortedProductList.get(i+j).equals(sortedProductList.get(i))) {
+						sortedProductList.remove(i+j);
 						removed++;
 					}
 				}
 			}
 		}
+		productCounts = null;
 		System.out.println("Removed " + removed + " duplicate titles");
 		
-		ArrayList<ProductCount> sampledProductList = new ArrayList<ProductCount>(numOfProducts);
-		for (int i = 0; i < numOfProducts; i++) {
-			sampledProductList.add(tmpProductList.get(i));
-		}
-		productCounts = null;
-		tmpProductList = null;
-		
-		ArrayList<ReviewerCount> tmpReviewerList = new ArrayList<ReviewerCount>(reviewerCounts.values());
-		Collections.sort(tmpReviewerList);
-		ArrayList<ReviewerCount> sampledReviewerList = new ArrayList<ReviewerCount>(numOfReviewers);
-		for (int i = 0; i < numOfReviewers; i++) {
-			sampledReviewerList.add(tmpReviewerList.get(i));
-		}
-		reviewerCounts = null;
-		tmpReviewerList = null;
-	
-		
-		HashMap<String, ProductCount> sampledProductMap = new HashMap<String, ProductCount>(numOfProducts);
-		HashMap<String, ReviewerCount> sampledReviewerMap = new HashMap<String, ReviewerCount>(numOfReviewers);
-		for (int i = 0; i < numOfProducts; i++) {
-			sampledProductMap.put(sampledProductList.get(i).productTitle, sampledProductList.get(i));
-		}
-		for (int i = 0; i < numOfReviewers; i++) {
-			sampledReviewerMap.put(sampledReviewerList.get(i).userID, sampledReviewerList.get(i));
-		}
+		outputProductCountsToCSV(sortedProductList, basePath, "ALL-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
 
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Sorted and sampled " + sampledProductList.size() + " products and " + sampledReviewerList.size() + " reviewers of those products in " + duration + " seconds.");
+		System.out.println("Read and saved sorted counts of " + sortedProductList.size() + " products in " + duration + " seconds.");
 		
+		
+		sampleProductsAndDoTheRest(100, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(100, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(100, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		
+		sampleProductsAndDoTheRest(500, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(500, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(500, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		
+		sampleProductsAndDoTheRest(1000, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(1000, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(1000, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		
+		sampleProductsAndDoTheRest(Integer.MAX_VALUE, Integer.MAX_VALUE, sortedProductList, basePath, inputFile, outputFilePrefix);
+
+	}
+	
+	public static void sampleProductsAndDoTheRest(int numOfProducts, int numOfReviewers, ArrayList<ProductCount> sortedProductList, String basePath, String inputFile, String outputFilePrefix) {
+		long startTime, endTime, duration;
+		//----------------------------SAMPLE MOST REVIEWED PRODUCTS-----------------------------------------------
 		startTime = System.nanoTime();
-		HashMap<String, ProductRecord> productRecords = getProductRecords(sampledProductMap, sampledReviewerMap, basePath, inputFile);
-		outputFinalCSV(productRecords, sampledProductList, sampledReviewerList, basePath, outputFilePrefix);
+		if (numOfProducts > sortedProductList.size()) {
+			System.out.println("Only " + sortedProductList.size() + " products available, cannot sample " + numOfProducts +" will use all products instead");
+			numOfProducts = sortedProductList.size();
+		}
+		ArrayList<ProductCount> sampledProductList = new ArrayList<ProductCount>(numOfProducts);
+
+		for (int i = 0; i < numOfProducts; i++) {
+			sampledProductList.add(sortedProductList.get(i));
+		}
+		sortedProductList = null;
+		
+		HashMap<String, ProductCount> sampledProductMap = new HashMap<String, ProductCount>(numOfProducts);
+		for (int i = 0; i < numOfProducts; i++) {
+			sampledProductMap.put(sampledProductList.get(i).productTitle, sampledProductList.get(i));
+		}
+		
+		outputProductCountsToCSV(sampledProductList, basePath, numOfProducts + "-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
 		
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
-		System.out.println("Retrieved product records and output to final csv in " + duration + " seconds");
+		System.out.println("Sampled " + sampledProductList.size() + " most reviewed products in " + duration + " seconds.");
+		
+		//----------------------------READ, SORT, and WRITE MOST ACTIVE REVIEWERS OF THE SAMPLED PRODUCTS-----------------------------------------------
+		startTime = System.nanoTime();
+		HashMap<String, ReviewerCount> reviewerCounts = getReviewerCountsOnProducts(sampledProductMap, basePath, inputFile);
+		ArrayList<ReviewerCount> sortedReviewerList = new ArrayList<ReviewerCount>(reviewerCounts.values());
+		Collections.sort(sortedReviewerList);
+		reviewerCounts = null;
+		outputReviewerCountsToCSV(sortedReviewerList, basePath, "ALL-MostCommonReviewersOfThoseProducts"  + "-"  + outputFilePrefix + ".csv");
+		
+		endTime = System.nanoTime();
+		duration = (endTime - startTime) / 1000000 / 1000;
+		System.out.println("Read and saved sorted counts of " + sortedReviewerList.size() + " reviewers of those products in " + duration + " seconds.");
+		
+		//----------------------------SAMPLE THOSE REVIEWERS-----------------------------------------------	
+		startTime = System.nanoTime();
+		if (numOfReviewers > sortedReviewerList.size()) {
+			System.out.println("Only " + sortedReviewerList.size() + " reviewers available, cannot sample " + numOfReviewers +" will use all reviewers instead");
+			numOfReviewers = sortedReviewerList.size();
+		}
+		ArrayList<ReviewerCount> sampledReviewerList = new ArrayList<ReviewerCount>(numOfReviewers);
+
+		for (int i = 0; i < numOfReviewers; i++) {
+			sampledReviewerList.add(sortedReviewerList.get(i));
+		}
+		
+		sortedReviewerList = null;
+		HashMap<String, ReviewerCount> sampledReviewerMap = new HashMap<String, ReviewerCount>(numOfReviewers);
+
+		for (int i = 0; i < numOfReviewers; i++) {
+			sampledReviewerMap.put(sampledReviewerList.get(i).userID, sampledReviewerList.get(i));
+		}
+		
+		outputReviewerCountsToCSV(sampledReviewerList, basePath, numOfReviewers + "-MostCommonReviewersOfThoseProducts"   + "-"  + outputFilePrefix + ".csv");
+
+		endTime = System.nanoTime();
+		duration = (endTime - startTime) / 1000000 / 1000;
+		System.out.println("Sampled " + sampledReviewerList.size() + " reviewers of those products in " + duration + " seconds.");
+
+		//----------------------------READ, SORT, and WRITE DETAILED RECORDS OF REVIEWS OF THE SAMPLED PRODUCTS BY THE SAMPLED REVIEWERS-----------------------------------------------		
+		startTime = System.nanoTime();
+		HashMap<String, ProductRecord> productRecords = getProductRecords(sampledProductMap, sampledReviewerMap, basePath, inputFile);
+		ArrayList<ProductRecord> sortedProductRecords = new ArrayList<ProductRecord>(productRecords.values());
+		Collections.sort(sortedProductRecords);
+		
+		outputFinalCSV(sortedProductRecords, sampledReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R" + "-"  + outputFilePrefix + ".csv");
+		
+		endTime = System.nanoTime();
+		duration = (endTime - startTime) / 1000000 / 1000;
+		System.out.println("Retrieved " + productRecords.size() + " product records and output to final csv in " + duration + " seconds");
 		/*
 		System.out.println(productRecords.size());
 		for (ProductRecord pr : productRecords.values()) {
@@ -136,27 +189,27 @@ public class Main {
 		*/
 	}
 	
-	public static void outputFinalCSV(HashMap<String, ProductRecord> productRecords, ArrayList<ProductCount> sampledProductList, ArrayList<ReviewerCount>  sampledReviewerList, String basePath, String outputFilePrefix) {
+	public static void outputFinalCSV(ArrayList<ProductRecord> sortedProductRecords, ArrayList<ReviewerCount>  sampledReviewerList, String basePath, String outputFilePrefix) {
 
 		CsvWriter csvOutput;
 		try {
-			csvOutput = new CsvWriter(new FileWriter(basePath + outputFilePrefix + "final.csv"), ',');
+			csvOutput = new CsvWriter(new FileWriter(basePath + "final" + "-" + outputFilePrefix + ".csv"), ',');
 			// OutputHeader
-			for (ProductCount pc : sampledProductList) {
+			for (ProductRecord pc : sortedProductRecords) {
 				csvOutput.write(pc.productTitle);
 			}
 			csvOutput.endRecord();
 			//Output each record
 			for (ReviewerCount rc : sampledReviewerList) {
-				for (ProductCount pc : sampledProductList) {
-					ProductRecord rec = productRecords.get(pc.productTitle);
+				for (ProductRecord rec : sortedProductRecords) {
+					//System.out.println(pc.productTitle + " " + rec);
+					// Rec may be null if the reviewers who reviewed this product were not sampled.
 					if (rec.reviews.containsKey(rc.userID)) {
 						csvOutput.write(rec.reviews.get(rc.userID).rating);
 					}
 					else {
 						csvOutput.write("0");
 					}
-					
 				}
 				csvOutput.endRecord();
 				
@@ -172,16 +225,11 @@ public class Main {
 
 	}
 	
-	public static void outputReviewerCountsToCSV(HashMap<String, ReviewerCount> reviewerCounts, String basePath, String outputFile) {
-		PriorityQueue<ReviewerCount> sortedReviewers = new PriorityQueue<ReviewerCount>();
-		sortedReviewers.addAll(reviewerCounts.values());
-		
-		int k = reviewerCounts.size();
+	public static void outputReviewerCountsToCSV(ArrayList<ReviewerCount> sortedReviewers, String basePath, String outputFile) {
 		CsvWriter csvOutput;
 		try {
 			csvOutput = new CsvWriter(new FileWriter(basePath + outputFile), ',');
-			for (int i = 0; i < k; i++) {
-				ReviewerCount rec = sortedReviewers.poll();
+			for (ReviewerCount rec : sortedReviewers) {
 				csvOutput.write(rec.userID);
 				csvOutput.write(rec.profileName);
 				csvOutput.write(String.valueOf(rec.reviewCount));
@@ -194,16 +242,11 @@ public class Main {
 		}
 	}
 	
-	public static void outputProductCountsToCSV(HashMap<String, ProductCount> productCounts, String basePath, String outputFile) {
-		PriorityQueue<ProductCount> sortedProducts = new PriorityQueue<ProductCount>();
-		sortedProducts.addAll(productCounts.values());
-		
-		int k = productCounts.size();
+	public static void outputProductCountsToCSV(ArrayList<ProductCount> sortedProducts, String basePath, String outputFile) {
 		CsvWriter csvOutput;
 		try {
 			csvOutput = new CsvWriter(new FileWriter(basePath + outputFile), ',');
-			for (int i = 0; i < k; i++) {
-				ProductCount rec = sortedProducts.poll();
+			for (ProductCount rec : sortedProducts) {
 				csvOutput.write(rec.productID);
 				csvOutput.write(rec.productTitle);
 				csvOutput.write(String.valueOf(rec.reviewCount));
@@ -301,6 +344,8 @@ public class Main {
 							.replaceAll("[ \t\n\r]+", " ")
 							.toLowerCase().trim();
 					*/
+					
+					
 					// Skip if its unknown
 					if (!userID.equals("unknown")) {
 						if (products.containsKey(productTitle)) {
@@ -374,6 +419,7 @@ public class Main {
 							.replaceAll("[ \t\n\r]+", " ")
 							.toLowerCase().trim();
 					
+
 					if (products.containsKey(productTitle) && reviewers.containsKey(userID)) {
 						if (!records.containsKey(productTitle)) {
 							records.put(productTitle, new ProductRecord(productID, productTitle, cleanedProductTitle, new Review(userID, rating, helpfulness)));
