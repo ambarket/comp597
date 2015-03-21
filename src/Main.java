@@ -40,16 +40,17 @@ public class Main {
 		"Amazon_Instant_Video");
 		*/
 		
-		/*
-		 findKMostReviewsProductsWithReviews(1000,
+		
+		findKMostReviewsProductsWithReviews(100, 1000,
 		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\", "Books.txt",
 		 "Books");
-		*/
 		
+		
+		/*
 		findKMostReviewsProductsWithReviews(100, 1000,
 		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\",
 		"Software.txt", "Software");
-		 
+		 */
 		/*
 		 * csvGeneratorThread t = new csvGeneratorThread(basePath, inputFile,
 		 * outputFile, withText); t.start(); try { t.join(); } catch
@@ -77,6 +78,19 @@ public class Main {
 		
 		ArrayList<ProductCount> tmpProductList = new ArrayList<ProductCount>(productCounts.values());
 		Collections.sort(tmpProductList);
+		int removed = 0;
+		for (int i = 0; i < numOfProducts; i++) {
+			for (int j = 1; j < 500; j++) {
+				if (i+j < tmpProductList.size()) {
+					if (tmpProductList.get(i+j).equals(tmpProductList.get(i))) {
+						tmpProductList.remove(i+j);
+						removed++;
+					}
+				}
+			}
+		}
+		System.out.println("Removed " + removed + " duplicate titles");
+		
 		ArrayList<ProductCount> sampledProductList = new ArrayList<ProductCount>(numOfProducts);
 		for (int i = 0; i < numOfProducts; i++) {
 			sampledProductList.add(tmpProductList.get(i));
@@ -97,7 +111,7 @@ public class Main {
 		HashMap<String, ProductCount> sampledProductMap = new HashMap<String, ProductCount>(numOfProducts);
 		HashMap<String, ReviewerCount> sampledReviewerMap = new HashMap<String, ReviewerCount>(numOfReviewers);
 		for (int i = 0; i < numOfProducts; i++) {
-			sampledProductMap.put(sampledProductList.get(i).productID, sampledProductList.get(i));
+			sampledProductMap.put(sampledProductList.get(i).productTitle, sampledProductList.get(i));
 		}
 		for (int i = 0; i < numOfReviewers; i++) {
 			sampledReviewerMap.put(sampledReviewerList.get(i).userID, sampledReviewerList.get(i));
@@ -135,7 +149,7 @@ public class Main {
 			//Output each record
 			for (ReviewerCount rc : sampledReviewerList) {
 				for (ProductCount pc : sampledProductList) {
-					ProductRecord rec = productRecords.get(pc.productID);
+					ProductRecord rec = productRecords.get(pc.productTitle);
 					if (rec.reviews.containsKey(rc.userID)) {
 						csvOutput.write(rec.reviews.get(rc.userID).rating);
 					}
@@ -169,6 +183,7 @@ public class Main {
 			for (int i = 0; i < k; i++) {
 				ReviewerCount rec = sortedReviewers.poll();
 				csvOutput.write(rec.userID);
+				csvOutput.write(rec.profileName);
 				csvOutput.write(String.valueOf(rec.reviewCount));
 				csvOutput.endRecord();
 			}
@@ -190,6 +205,7 @@ public class Main {
 			for (int i = 0; i < k; i++) {
 				ProductCount rec = sortedProducts.poll();
 				csvOutput.write(rec.productID);
+				csvOutput.write(rec.productTitle);
 				csvOutput.write(String.valueOf(rec.reviewCount));
 				csvOutput.endRecord();
 			}
@@ -220,15 +236,23 @@ public class Main {
 					String productID = line
 							.replaceAll(startField.pattern(), "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					String title = br.readLine()
+					String productTitle = br.readLine()
 							.replaceAll("^product/title:", "")
-							.replaceAll(non_printable.pattern(), "").trim();
+							.replaceAll(non_printable.pattern(), "")
+							.trim();
 					
-							if (!counts.containsKey(productID)) {
-								counts.put(productID, new ProductCount(productID, title, 1));
-							} else {
-								counts.get(productID).reviewCount++;
-							}
+					String cleanedProductTitle = productTitle
+							.replaceAll("and|&|:|;", " ")
+							.replaceAll("[ \t\n\r]+", " ")
+							.toLowerCase().trim();
+					
+					if (!productTitle.equals("")) {
+						if (!counts.containsKey(productTitle)) {
+							counts.put(productTitle, new ProductCount(productID, productTitle, cleanedProductTitle, 1));
+						} else {
+							counts.get(productTitle).reviewCount++;
+						}
+					}
 				}
 			}
 			br.close();
@@ -258,18 +282,30 @@ public class Main {
 					String productID = line
 							.replaceAll(startField.pattern(), "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					// Skip title and price
-					br.readLine();
+					String productTitle = br.readLine()
+							.replaceAll("^product/title:", "")
+							.replaceAll(non_printable.pattern(), "")
+							.trim();
+					// Skip price
 					br.readLine();
 					String userID = br.readLine()
 							.replaceAll("^review/userId:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
+					String profileName = br.readLine()
+							.replaceAll("^review/profileName:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
 					
+					/*
+					String cleanedProductTitle = productTitle
+							.replaceAll("and|&|:|;", " ")
+							.replaceAll("[ \t\n\r]+", " ")
+							.toLowerCase().trim();
+					*/
 					// Skip if its unknown
 					if (!userID.equals("unknown")) {
-						if (products.containsKey(productID)) {
+						if (products.containsKey(productTitle)) {
 							if (!counts.containsKey(userID)) {
-								counts.put(userID, new ReviewerCount(userID, 1));
+								counts.put(userID, new ReviewerCount(userID, profileName, 1));
 							} else {
 								counts.get(userID).reviewCount++;
 							}
@@ -304,7 +340,6 @@ public class Main {
 
 			String[] record = new String[10];
 			while ((line = br.readLine()) != null) {
-				String lineValue = null;
 				if (startField.matcher(line).find()) {
 					record[0] = line;
 					for (int i = 1; i < 10; i++) {
@@ -321,7 +356,8 @@ public class Main {
 							.replaceAll(non_printable.pattern(), "").trim();
 					String productTitle = record[1]
 							.replaceAll("^product/title:", "")
-							.replaceAll(non_printable.pattern(), "").trim();
+							.replaceAll(non_printable.pattern(), "")
+							.trim();
 					String userID = record[3]
 							.replaceAll("^review/userId:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
@@ -332,11 +368,17 @@ public class Main {
 							.replaceAll("^review/helpfulness:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
 					
-					if (products.containsKey(productID) && reviewers.containsKey(userID)) {
-						if (!records.containsKey(productID)) {
-							records.put(productID, new ProductRecord(productID, productTitle, new Review(userID, rating, helpfulness)));
+					
+					String cleanedProductTitle = productTitle
+							.replaceAll("and|&|:|;", " ")
+							.replaceAll("[ \t\n\r]+", " ")
+							.toLowerCase().trim();
+					
+					if (products.containsKey(productTitle) && reviewers.containsKey(userID)) {
+						if (!records.containsKey(productTitle)) {
+							records.put(productTitle, new ProductRecord(productID, productTitle, cleanedProductTitle, new Review(userID, rating, helpfulness)));
 						} else {
-							records.get(productID).reviews.put(userID, new Review(userID,rating, helpfulness));
+							records.get(productTitle).reviews.put(userID, new Review(userID,rating, helpfulness));
 						}
 					}
 				}
@@ -354,10 +396,14 @@ public class Main {
 
 class ProductRecord implements Comparable<ProductRecord> {
 	String productID;
+	String productTitle;
+	String cleanTitle;
 	HashMap<String, Review> reviews;
 
-	public ProductRecord(String productID, String title, Review firstReview) {
+	public ProductRecord(String productID, String title, String cleanTitle, Review firstReview) {
 		this.productID = productID;
+		this.productTitle = title;
+		this.cleanTitle = cleanTitle;
 		this.reviews = new HashMap<String, Review>();
 		this.reviews.put(firstReview.userID, firstReview);
 	}
@@ -368,27 +414,31 @@ class ProductRecord implements Comparable<ProductRecord> {
 
 	@Override
 	public int hashCode() {
-		return 37 * reviews.size() + productID.hashCode();
+		return 37 * reviews.hashCode() + productTitle.hashCode() + productID.hashCode();
 	}
 
 	@Override
 	public boolean equals(Object that) {
-		return productID.equals(((ProductRecord) that).productID);
+		System.out.println("In product record ==");
+		return productTitle.equals(((ProductRecord) that).productTitle);
+
 	}
 	
 	public String toString() {
-		return this.productID + ": " + this.reviews.size() + " reviews";
+		return this.productID + ": " + this.productTitle + " - " + this.cleanTitle + " : " + this.reviews.size() + " reviews";
 	}
 }
 
 class ProductCount implements Comparable<ProductCount> {
 	String productID;
 	String productTitle;
+	String cleanTitle;
 	int reviewCount;
 
-	public ProductCount(String productID, String productTitle, int reviewCount) {
+	public ProductCount(String productID, String productTitle, String cleanTitle, int reviewCount) {
 		this.productID = productID;
 		this.productTitle = productTitle;
+		this.cleanTitle = cleanTitle;
 		this.reviewCount = reviewCount;
 	}
 
@@ -398,21 +448,26 @@ class ProductCount implements Comparable<ProductCount> {
 
 	@Override
 	public int hashCode() {
-		return 37 * reviewCount + productID.hashCode();
+		return 37 * reviewCount + productID.hashCode() + productTitle.hashCode();
 	}
 
 	@Override
 	public boolean equals(Object that) {
-		return productID.equals(((ProductRecord) that).productID);
+		//return productID.equals(((ProductRecord) that).productID);
+		ProductCount other = (ProductCount) that;
+		//return productTitle.equals(other.productTitle);
+		return cleanTitle.contains(other.cleanTitle) || other.cleanTitle.contains(cleanTitle);
 	}
 }
 
 class ReviewerCount implements Comparable<ReviewerCount> {
 	String userID;
+	String profileName;
 	int reviewCount;
 
-	public ReviewerCount(String userID, int reviewCount) {
+	public ReviewerCount(String userID, String profileName, int reviewCount) {
 		this.userID = userID;
+		this.profileName = profileName;
 		this.reviewCount = reviewCount;
 	}
 
