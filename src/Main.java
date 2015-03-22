@@ -42,10 +42,15 @@ public class Main {
 		
 		
 		findKMostReviewsProductsWithReviews(100, 1000,
-		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Books\\", "Books.txt",
+		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\BooksLessRestricted\\", "Books.txt",
 		 "Books");
+		 
 		
-		
+		/*
+		findKMostReviewsProductsWithReviews(100, 1000,
+				 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\MoviesAndTV\\", "Movies_&_TV.txt",
+				 "MoviesAndTV");
+				 */
 		/*
 		findKMostReviewsProductsWithReviews(100, 1000,
 		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\",
@@ -71,12 +76,18 @@ public class Main {
 		ArrayList<ProductCount> sortedProductList = new ArrayList<ProductCount>(productCounts.values());
 		Collections.sort(sortedProductList);
 		int removed = 0;
-		for (int i = 0; i < numOfProducts; i++) {
-			for (int j = 1; j < 1000; j++) {
-				if (i+j < sortedProductList.size()) {
-					if (sortedProductList.get(i+j).equals(sortedProductList.get(i))) {
-						sortedProductList.remove(i+j);
-						removed++;
+		boolean changed = true;
+		while(changed) {
+			changed = false;
+			for (int i = 0; i < numOfProducts; i++) {
+				for (int j = 1; j < sortedProductList.size(); j++) {
+					if (i+j < sortedProductList.size()) {
+						if (sortedProductList.get(i+j).similar(sortedProductList.get(i))) {
+							System.out.println("Removing duplicates: " + sortedProductList.get(i+j).productTitle + ", " + sortedProductList.get(i).productTitle);
+							changed = true;
+							sortedProductList.remove(i+j);
+							removed++;
+						}
 					}
 				}
 			}
@@ -91,19 +102,29 @@ public class Main {
 		System.out.println("Read and saved sorted counts of " + sortedProductList.size() + " products in " + duration + " seconds.");
 		
 		
-		sampleProductsAndDoTheRest(100, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(100, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(100, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(250, 100, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(250, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(250, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		//sampleProductsAndDoTheRest(250, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		
+		sampleProductsAndDoTheRest(500, 100, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(500, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(500, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(500, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		//sampleProductsAndDoTheRest(500, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		
+		sampleProductsAndDoTheRest(100, 100, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(100, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(100, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		//sampleProductsAndDoTheRest(100, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		
+
+		/*
 		sampleProductsAndDoTheRest(1000, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(1000, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(1000, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		
 		sampleProductsAndDoTheRest(Integer.MAX_VALUE, Integer.MAX_VALUE, sortedProductList, basePath, inputFile, outputFilePrefix);
+		*/
 
 	}
 	
@@ -139,7 +160,7 @@ public class Main {
 		ArrayList<ReviewerCount> sortedReviewerList = new ArrayList<ReviewerCount>(reviewerCounts.values());
 		Collections.sort(sortedReviewerList);
 		reviewerCounts = null;
-		outputReviewerCountsToCSV(sortedReviewerList, basePath, "ALL-MostCommonReviewersOfThoseProducts"  + "-"  + outputFilePrefix + ".csv");
+		outputReviewerCountsToCSV(sortedReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R-ALL-MostCommonReviewersOfThoseProducts"  + "-"  + outputFilePrefix + ".csv");
 		
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
@@ -164,7 +185,7 @@ public class Main {
 			sampledReviewerMap.put(sampledReviewerList.get(i).userID, sampledReviewerList.get(i));
 		}
 		
-		outputReviewerCountsToCSV(sampledReviewerList, basePath, numOfReviewers + "-MostCommonReviewersOfThoseProducts"   + "-"  + outputFilePrefix + ".csv");
+		outputReviewerCountsToCSV(sampledReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R-MostCommonReviewersOfThoseProducts"   + "-"  + outputFilePrefix + ".csv");
 
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
@@ -176,7 +197,7 @@ public class Main {
 		ArrayList<ProductRecord> sortedProductRecords = new ArrayList<ProductRecord>(productRecords.values());
 		Collections.sort(sortedProductRecords);
 		
-		outputFinalCSV(sortedProductRecords, sampledReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R" + "-"  + outputFilePrefix + ".csv");
+		outputFinalCSV(sortedProductRecords, sampledReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R-"  + outputFilePrefix);
 		
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
@@ -284,10 +305,7 @@ public class Main {
 							.replaceAll(non_printable.pattern(), "")
 							.trim();
 					
-					String cleanedProductTitle = productTitle
-							.replaceAll("and|&|:|;", " ")
-							.replaceAll("[ \t\n\r]+", " ")
-							.toLowerCase().trim();
+					String cleanedProductTitle = getCleanTitle(productTitle);
 					
 					if (!productTitle.equals("")) {
 						if (!counts.containsKey(productTitle)) {
@@ -353,6 +371,7 @@ public class Main {
 								counts.put(userID, new ReviewerCount(userID, profileName, 1));
 							} else {
 								counts.get(userID).reviewCount++;
+								System.out.println(counts.get(userID));
 							}
 						}
 					}
@@ -414,10 +433,7 @@ public class Main {
 							.replaceAll(non_printable.pattern(), "").trim();
 					
 					
-					String cleanedProductTitle = productTitle
-							.replaceAll("and|&|:|;", " ")
-							.replaceAll("[ \t\n\r]+", " ")
-							.toLowerCase().trim();
+					String cleanedProductTitle = getCleanTitle(productTitle);
 					
 
 					if (products.containsKey(productTitle) && reviewers.containsKey(userID)) {
@@ -435,6 +451,15 @@ public class Main {
 		}
 
 		return records;
+	}
+	public static String getCleanTitle(String title) {
+		String cleanedProductTitle = title.toLowerCase()
+				//.replaceAll("and|the|of|a|or|edition|&|isbn|:.*|;.*|-.*", ""
+				.replaceAll("and|the|of|a|or|edition|&|isbn|volume", "")
+				.replaceAll("[ \t\n\r]+", "")
+				.replaceAll("([\\(\\[].*[\\)\\]])+", "")
+				.trim();
+		return cleanedProductTitle;
 	}
 }
 
@@ -502,7 +527,56 @@ class ProductCount implements Comparable<ProductCount> {
 		//return productID.equals(((ProductRecord) that).productID);
 		ProductCount other = (ProductCount) that;
 		//return productTitle.equals(other.productTitle);
-		return cleanTitle.contains(other.cleanTitle) || other.cleanTitle.contains(cleanTitle);
+		//System.out.println(cleanTitle + ", " + other.cleanTitle + ", " + ;
+		return productTitle.equals(other.productTitle);
+	}
+	
+	public boolean similar(ProductCount other) {
+		return cleanTitle.equals(other.cleanTitle) || 
+				(
+						(cleanTitle.contains(other.cleanTitle) || other.cleanTitle.contains(cleanTitle)) && 
+						(LevenshteinDistance(cleanTitle, other.cleanTitle) < Math.min(cleanTitle.length(), other.cleanTitle.length()))
+				);
+	}
+	
+	public int LevenshteinDistance (String s0, String s1) {                          
+	    int len0 = s0.length() + 1;                                                     
+	    int len1 = s1.length() + 1;                                                     
+	 
+	    // the array of distances                                                       
+	    int[] cost = new int[len0];                                                     
+	    int[] newcost = new int[len0];                                                  
+	 
+	    // initial cost of skipping prefix in String s0                                 
+	    for (int i = 0; i < len0; i++) cost[i] = i;                                     
+	 
+	    // dynamically computing the array of distances                                  
+	 
+	    // transformation cost for each letter in s1                                    
+	    for (int j = 1; j < len1; j++) {                                                
+	        // initial cost of skipping prefix in String s1                             
+	        newcost[0] = j;                                                             
+	 
+	        // transformation cost for each letter in s0                                
+	        for(int i = 1; i < len0; i++) {                                             
+	            // matching current letters in both strings                             
+	            int match = (s0.charAt(i - 1) == s1.charAt(j - 1)) ? 0 : 1;             
+	 
+	            // computing cost for each transformation                               
+	            int cost_replace = cost[i - 1] + match;                                 
+	            int cost_insert  = cost[i] + 1;                                         
+	            int cost_delete  = newcost[i - 1] + 1;                                  
+	 
+	            // keep minimum cost                                                    
+	            newcost[i] = Math.min(Math.min(cost_insert, cost_delete), cost_replace);
+	        }                                                                           
+	 
+	        // swap cost/newcost arrays                                                 
+	        int[] swap = cost; cost = newcost; newcost = swap;                          
+	    }                                                                               
+	 
+	    // the distance is the cost for transforming all letters in both strings        
+	    return cost[len0 - 1];                                                          
 	}
 }
 
