@@ -40,22 +40,22 @@ public class Main {
 		"Amazon_Instant_Video");
 		*/
 		
-		
+		/*
 		findKMostReviewsProductsWithReviews(100, 1000,
 		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\BooksLessRestricted\\", "Books.txt",
 		 "Books");
-		 
+		 */
 		
 		/*
 		findKMostReviewsProductsWithReviews(100, 1000,
 				 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\MoviesAndTV\\", "Movies_&_TV.txt",
 				 "MoviesAndTV");
 				 */
-		/*
+		
 		findKMostReviewsProductsWithReviews(100, 1000,
 		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\",
 		"Software.txt", "Software");
-		 */
+		 
 		/*
 		 * csvGeneratorThread t = new csvGeneratorThread(basePath, inputFile,
 		 * outputFile, withText); t.start(); try { t.join(); } catch
@@ -75,6 +75,7 @@ public class Main {
 		
 		ArrayList<ProductCount> sortedProductList = new ArrayList<ProductCount>(productCounts.values());
 		Collections.sort(sortedProductList);
+		/*
 		int removed = 0;
 		boolean changed = true;
 		while(changed) {
@@ -92,9 +93,10 @@ public class Main {
 				}
 			}
 		}
+		
 		productCounts = null;
 		System.out.println("Removed " + removed + " duplicate titles");
-		
+		*/
 		outputProductCountsToCSV(sortedProductList, basePath, "ALL-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
 
 		endTime = System.nanoTime();
@@ -145,7 +147,7 @@ public class Main {
 		
 		HashMap<String, ProductCount> sampledProductMap = new HashMap<String, ProductCount>(numOfProducts);
 		for (int i = 0; i < numOfProducts; i++) {
-			sampledProductMap.put(sampledProductList.get(i).productTitle, sampledProductList.get(i));
+			sampledProductMap.put(sampledProductList.get(i).productID, sampledProductList.get(i));
 		}
 		
 		outputProductCountsToCSV(sampledProductList, basePath, numOfProducts + "-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
@@ -197,6 +199,7 @@ public class Main {
 		ArrayList<ProductRecord> sortedProductRecords = new ArrayList<ProductRecord>(productRecords.values());
 		Collections.sort(sortedProductRecords);
 		
+		outputProductRecordsToCSV(sortedProductRecords, basePath, numOfProducts + "P-" + numOfReviewers + "R-"  + outputFilePrefix);
 		outputFinalCSV(sortedProductRecords, sampledReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R-"  + outputFilePrefix);
 		
 		endTime = System.nanoTime();
@@ -210,11 +213,31 @@ public class Main {
 		*/
 	}
 	
+	public static void outputProductRecordsToCSV(ArrayList<ProductRecord> sortedProductRecords, String basePath, String outputFilePrefix) {
+
+		CsvWriter csvOutput;
+		try {
+			csvOutput = new CsvWriter(new FileWriter(basePath + outputFilePrefix + "-RECORDS.csv"), ',');
+			csvOutput.endRecord();
+			//Output each record
+			for (ProductRecord rec : sortedProductRecords) {
+				csvOutput.write(rec.productTitle);
+				csvOutput.write(String.valueOf(rec.reviews.size()));
+				csvOutput.endRecord();
+			}
+			csvOutput.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
 	public static void outputFinalCSV(ArrayList<ProductRecord> sortedProductRecords, ArrayList<ReviewerCount>  sampledReviewerList, String basePath, String outputFilePrefix) {
 
 		CsvWriter csvOutput;
 		try {
-			csvOutput = new CsvWriter(new FileWriter(basePath + "final" + "-" + outputFilePrefix + ".csv"), ',');
+			csvOutput = new CsvWriter(new FileWriter(basePath + outputFilePrefix + "-FINAL.csv"), ',');
 			// OutputHeader
 			for (ProductRecord pc : sortedProductRecords) {
 				csvOutput.write(pc.productTitle);
@@ -308,10 +331,10 @@ public class Main {
 					String cleanedProductTitle = getCleanTitle(productTitle);
 					
 					if (!productTitle.equals("")) {
-						if (!counts.containsKey(productTitle)) {
-							counts.put(productTitle, new ProductCount(productID, productTitle, cleanedProductTitle, 1));
+						if (!counts.containsKey(productID)) {
+							counts.put(productID, new ProductCount(productID, productTitle, cleanedProductTitle, 1));
 						} else {
-							counts.get(productTitle).reviewCount++;
+							counts.get(productID).reviewCount++;
 						}
 					}
 				}
@@ -366,12 +389,16 @@ public class Main {
 					
 					// Skip if its unknown
 					if (!userID.equals("unknown")) {
-						if (products.containsKey(productTitle)) {
+						if (products.containsKey(productID)) {
 							if (!counts.containsKey(userID)) {
-								counts.put(userID, new ReviewerCount(userID, profileName, 1));
+								counts.put(userID, new ReviewerCount(userID, profileName, 1, productID));
 							} else {
-								counts.get(userID).reviewCount++;
-								System.out.println(counts.get(userID));
+								if (!counts.get(userID).productsReviewed.contains(productID)) {
+									counts.get(userID).reviewCount++;
+									counts.get(userID).productsReviewed.add(productID);
+								}
+
+								//System.out.println(counts.get(userID));
 							}
 						}
 					}
@@ -436,11 +463,14 @@ public class Main {
 					String cleanedProductTitle = getCleanTitle(productTitle);
 					
 
-					if (products.containsKey(productTitle) && reviewers.containsKey(userID)) {
-						if (!records.containsKey(productTitle)) {
-							records.put(productTitle, new ProductRecord(productID, productTitle, cleanedProductTitle, new Review(userID, rating, helpfulness)));
+					if (products.containsKey(productID) && reviewers.containsKey(userID)) {
+						if (!records.containsKey(productID)) {
+							records.put(productID, new ProductRecord(productID, productTitle, cleanedProductTitle, new Review(userID, rating, helpfulness)));
 						} else {
-							records.get(productTitle).reviews.put(userID, new Review(userID,rating, helpfulness));
+							if (!records.get(productID).reviews.containsKey(userID)) {
+								// APPARENTLY REVIEWS ARE DUPLICATED IN THESE FILES, EVEN FOR THE SAME PRODUCTS
+								records.get(productID).reviews.put(userID, new Review(userID,rating, helpfulness));
+							}
 						}
 					}
 				}
@@ -491,7 +521,7 @@ class ProductRecord implements Comparable<ProductRecord> {
 	@Override
 	public boolean equals(Object that) {
 		System.out.println("In product record ==");
-		return productTitle.equals(((ProductRecord) that).productTitle);
+		return productID.equals(((ProductRecord) that).productID);
 
 	}
 	
@@ -528,7 +558,7 @@ class ProductCount implements Comparable<ProductCount> {
 		ProductCount other = (ProductCount) that;
 		//return productTitle.equals(other.productTitle);
 		//System.out.println(cleanTitle + ", " + other.cleanTitle + ", " + ;
-		return productTitle.equals(other.productTitle);
+		return productID.equals(other.productID);
 	}
 	
 	public boolean similar(ProductCount other) {
@@ -584,11 +614,14 @@ class ReviewerCount implements Comparable<ReviewerCount> {
 	String userID;
 	String profileName;
 	int reviewCount;
+	HashSet<String> productsReviewed;
 
-	public ReviewerCount(String userID, String profileName, int reviewCount) {
+	public ReviewerCount(String userID, String profileName, int reviewCount, String firstProduct) {
 		this.userID = userID;
 		this.profileName = profileName;
 		this.reviewCount = reviewCount;
+		productsReviewed = new HashSet<String>();
+		productsReviewed.add(firstProduct);
 	}
 
 	public int compareTo(ReviewerCount that) {
