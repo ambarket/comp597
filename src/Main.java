@@ -7,6 +7,7 @@
  */
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -52,9 +53,9 @@ public class Main {
 				 "MoviesAndTV");
 				 */
 		
-		findKMostReviewsProductsWithReviews(100, 1000,
-		"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\",
-		"Software.txt", "Software");
+		minify("C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\","Software.txt", "Software");
+		
+		//findKMostReviewsProductsWithReviews(100, 1000,"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\","Software.txt", "Software");
 		 
 		/*
 		 * csvGeneratorThread t = new csvGeneratorThread(basePath, inputFile,
@@ -75,7 +76,7 @@ public class Main {
 		
 		ArrayList<ProductCount> sortedProductList = new ArrayList<ProductCount>(productCounts.values());
 		Collections.sort(sortedProductList);
-		/*
+		
 		int removed = 0;
 		boolean changed = true;
 		while(changed) {
@@ -96,7 +97,7 @@ public class Main {
 		
 		productCounts = null;
 		System.out.println("Removed " + removed + " duplicate titles");
-		*/
+		
 		outputProductCountsToCSV(sortedProductList, basePath, "ALL-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
 
 		endTime = System.nanoTime();
@@ -128,6 +129,66 @@ public class Main {
 		sampleProductsAndDoTheRest(Integer.MAX_VALUE, Integer.MAX_VALUE, sortedProductList, basePath, inputFile, outputFilePrefix);
 		*/
 
+	}
+	public static void minify(String basePath, String inputFile, String outputFilePrefix) {
+
+		try {
+			// use FileWriter constructor that specifies open for appending
+			BufferedReader br = new BufferedReader(new FileReader(new File(basePath + inputFile)));
+			BufferedWriter bw = new BufferedWriter(new FileWriter(new File(basePath + outputFilePrefix + "minified.txt")));
+
+			String line;
+			Pattern startField = null;
+			// includedFields =
+			// Pattern.compile("^(product|review)/(productId:|title:|price:|userId:|profileName:|helpfulness:|score:|time:|summary:|text:)");
+			startField = Pattern.compile("^product/productId:");
+			Pattern non_printable = Pattern
+					.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
+
+			String[] record = new String[10];
+			while ((line = br.readLine()) != null) {
+				if (startField.matcher(line).find()) {
+					record[0] = line;
+					for (int i = 1; i < 10; i++) {
+						line = br.readLine();
+						if (line == null) {
+							System.out.println("SOmething terrible happened");
+						} else {
+							record[i] = line;
+						}
+					}
+
+					if (!record[3].equals("review/userId: unknown")) {
+						bw.write(record[0] + "\n");
+						bw.write(record[1] + "\n");
+						bw.write(record[3] + "\n");
+						bw.write(record[5] + "\n");
+						bw.write(record[6] + "\n\n");
+					}
+					/*
+					String productID = record[0]
+							.replaceAll(startField.pattern(), "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					String productTitle = record[1]
+							.replaceAll("^product/title:", "")
+							.replaceAll(non_printable.pattern(), "")
+							.trim();
+					String userID = record[3]
+							.replaceAll("^review/userId:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					String rating = record[6]
+							.replaceAll("^review/score:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					String helpfulness = record[5]
+							.replaceAll("^review/helpfulness:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+							*/
+				}
+			}
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void sampleProductsAndDoTheRest(int numOfProducts, int numOfReviewers, ArrayList<ProductCount> sortedProductList, String basePath, String inputFile, String outputFilePrefix) {
