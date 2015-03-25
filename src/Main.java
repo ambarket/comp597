@@ -41,11 +41,11 @@ public class Main {
 		"Amazon_Instant_Video");
 		*/
 		
-		/*
-		findKMostReviewsProductsWithReviews(100, 1000,
-		 "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\BooksLessRestricted\\", "Books.txt",
-		 "Books");
-		 */
+		//minify( "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\BooksLessRestricted\\", "Books.txt","Books");
+		
+		//findKMostReviewsProductsWithReviews(100, 1000,
+		 //"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\BooksLessRestricted\\withcontains\\", "BooksminifiedTo5000Products.txt","Books");
+		 
 		
 		/*
 		findKMostReviewsProductsWithReviews(100, 1000,
@@ -53,9 +53,9 @@ public class Main {
 				 "MoviesAndTV");
 				 */
 		
-		minify("C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\","Software.txt", "Software");
+		//minify("C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\","Software.txt", "Software");
 		
-		//findKMostReviewsProductsWithReviews(100, 1000,"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\","Software.txt", "Software");
+		findKMostReviewsProductsWithReviews(100, 1000,"C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Software\\","Softwareminified.txt", "Software");
 		 
 		/*
 		 * csvGeneratorThread t = new csvGeneratorThread(basePath, inputFile,
@@ -77,26 +77,41 @@ public class Main {
 		ArrayList<ProductCount> sortedProductList = new ArrayList<ProductCount>(productCounts.values());
 		Collections.sort(sortedProductList);
 		
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(basePath + outputFilePrefix + "-removedDuplicates.txt")));
 		int removed = 0;
 		boolean changed = true;
+		int passes = 0;
 		while(changed) {
 			changed = false;
-			for (int i = 0; i < numOfProducts; i++) {
-				for (int j = 1; j < sortedProductList.size(); j++) {
-					if (i+j < sortedProductList.size()) {
-						if (sortedProductList.get(i+j).similar(sortedProductList.get(i))) {
-							System.out.println("Removing duplicates: " + sortedProductList.get(i+j).productTitle + ", " + sortedProductList.get(i).productTitle);
+			for (int i = 0; i < 4999; i++) {
+				for (int j = i+1; j < 5000; ) {
+					if (j < sortedProductList.size()) {
+						if (sortedProductList.get(j).similar(sortedProductList.get(i))) {
+							bw.write(sortedProductList.get(j).cleanTitle + "   AND   " + sortedProductList.get(i).cleanTitle + "::::::" + sortedProductList.get(j).productTitle + "   AND   " + sortedProductList.get(i).productTitle + "\n");
 							changed = true;
-							sortedProductList.remove(i+j);
+							sortedProductList.remove(j);
 							removed++;
 						}
+						else {
+							j++;
+						}
+					}
+					else {
+						break;
 					}
 				}
+				if (i >= sortedProductList.size()) {
+					break;
+				}
 			}
+			passes++;
 		}
+		bw.close();
+		
+		minifyToKMostReviewedProducts(5000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		
 		productCounts = null;
-		System.out.println("Removed " + removed + " duplicate titles");
+		System.out.println("Removed " + removed + " duplicate titles in " + passes + " loop throughs");
 		
 		outputProductCountsToCSV(sortedProductList, basePath, "ALL-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
 
@@ -104,30 +119,33 @@ public class Main {
 		duration = (endTime - startTime) / 1000000 / 1000;
 		System.out.println("Read and saved sorted counts of " + sortedProductList.size() + " products in " + duration + " seconds.");
 		
-		
-		sampleProductsAndDoTheRest(250, 100, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(250, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(250, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		//sampleProductsAndDoTheRest(250, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		
-		sampleProductsAndDoTheRest(500, 100, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(500, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(500, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		//sampleProductsAndDoTheRest(500, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		
-		sampleProductsAndDoTheRest(100, 100, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(100, 200, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(100, 500, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(100, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(100, 2000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(100, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		//sampleProductsAndDoTheRest(100, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		
-
-		/*
+		sampleProductsAndDoTheRest(200, 200, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(200, 500, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(200, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(200, 2000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(200, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		
+		sampleProductsAndDoTheRest(300, 200, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(300, 500, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(300, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(300, 2000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(300, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		
+		sampleProductsAndDoTheRest(500, 500, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(500, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(500, 2000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(500, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		
+		sampleProductsAndDoTheRest(1000, 500, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(1000, 1000, sortedProductList, basePath, inputFile, outputFilePrefix);
+		sampleProductsAndDoTheRest(1000, 2000, sortedProductList, basePath, inputFile, outputFilePrefix);
 		sampleProductsAndDoTheRest(1000, 10000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		sampleProductsAndDoTheRest(1000, 50000, sortedProductList, basePath, inputFile, outputFilePrefix);
-		
-		sampleProductsAndDoTheRest(Integer.MAX_VALUE, Integer.MAX_VALUE, sortedProductList, basePath, inputFile, outputFilePrefix);
-		*/
 
 	}
 	public static void minify(String basePath, String inputFile, String outputFilePrefix) {
@@ -162,30 +180,79 @@ public class Main {
 						bw.write(record[0] + "\n");
 						bw.write(record[1] + "\n");
 						bw.write(record[3] + "\n");
+						bw.write(record[4] + "\n");
 						bw.write(record[5] + "\n");
 						bw.write(record[6] + "\n\n");
 					}
-					/*
-					String productID = record[0]
-							.replaceAll(startField.pattern(), "")
-							.replaceAll(non_printable.pattern(), "").trim();
-					String productTitle = record[1]
-							.replaceAll("^product/title:", "")
-							.replaceAll(non_printable.pattern(), "")
-							.trim();
-					String userID = record[3]
-							.replaceAll("^review/userId:", "")
-							.replaceAll(non_printable.pattern(), "").trim();
-					String rating = record[6]
-							.replaceAll("^review/score:", "")
-							.replaceAll(non_printable.pattern(), "").trim();
-					String helpfulness = record[5]
-							.replaceAll("^review/helpfulness:", "")
-							.replaceAll(non_printable.pattern(), "").trim();
-							*/
 				}
 			}
+			System.out.println("done minifying");
 			br.close();
+			bw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void minifyToKMostReviewedProducts(int numOfProducts, ArrayList<ProductCount> sortedProductList, String basePath, String inputFile, String outputFilePrefix) {
+		if (numOfProducts > sortedProductList.size()) {
+			System.out.println("Only " + sortedProductList.size() + " products available, cannot sample " + numOfProducts +" will use all products instead");
+			numOfProducts = sortedProductList.size();
+		}
+		ArrayList<ProductCount> sampledProductList = new ArrayList<ProductCount>(numOfProducts);
+
+		for (int i = 0; i < numOfProducts; i++) {
+			sampledProductList.add(sortedProductList.get(i));
+		}
+		sortedProductList = null;
+		
+		HashSet<String> sampledProductMap = new HashSet<String>(numOfProducts);
+		for (int i = 0; i < numOfProducts; i++) {
+			sampledProductMap.add(sampledProductList.get(i).productID);
+		}
+		try {
+			
+			// use FileWriter constructor that specifies open for appending
+			BufferedReader br = new BufferedReader(new FileReader(new File(basePath + inputFile)));
+			BufferedWriter bw = new BufferedWriter(new FileWriter(new File(basePath + outputFilePrefix + "minifiedTo" + numOfProducts + "Products.txt")));
+
+			String line;
+			Pattern startField = null;
+			// includedFields =
+			// Pattern.compile("^(product|review)/(productId:|title:|price:|userId:|profileName:|helpfulness:|score:|time:|summary:|text:)");
+			startField = Pattern.compile("^product/productId:");
+			Pattern non_printable = Pattern
+					.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
+
+			String[] record = new String[6];
+			while ((line = br.readLine()) != null) {
+				if (startField.matcher(line).find()) {
+					String productID = line
+							.replaceAll(startField.pattern(), "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					if (sampledProductMap.contains(productID)) {
+						record[0] = line;
+						for (int i = 1; i < 6; i++) {
+							line = br.readLine();
+							if (line == null) {
+								System.out.println("SOmething terrible happened");
+							} else {
+								record[i] = line;
+							}
+						}
+
+						bw.write(record[0] + "\n");
+						bw.write(record[1] + "\n");
+						bw.write(record[2] + "\n");
+						bw.write(record[3] + "\n");
+						bw.write(record[4] + "\n");
+						bw.write(record[5] + "\n\n");
+					}
+				}
+			}
+			System.out.println("done minifying to " + numOfProducts);
+			br.close();
+			bw.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -211,7 +278,7 @@ public class Main {
 			sampledProductMap.put(sampledProductList.get(i).productID, sampledProductList.get(i));
 		}
 		
-		outputProductCountsToCSV(sampledProductList, basePath, numOfProducts + "-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
+		outputProductCountsToCSV(sampledProductList, basePath, numOfProducts + "P-" + numOfReviewers + "R-MostReviewedProducts" + "-"  + outputFilePrefix + ".csv");
 		
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
@@ -242,17 +309,23 @@ public class Main {
 		}
 		
 		sortedReviewerList = null;
+		/*
 		HashMap<String, ReviewerCount> sampledReviewerMap = new HashMap<String, ReviewerCount>(numOfReviewers);
 
 		for (int i = 0; i < numOfReviewers; i++) {
 			sampledReviewerMap.put(sampledReviewerList.get(i).userID, sampledReviewerList.get(i));
 		}
+		*/
 		
 		outputReviewerCountsToCSV(sampledReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R-MostCommonReviewersOfThoseProducts"   + "-"  + outputFilePrefix + ".csv");
 
+		outputFinalCSVFromReviewerCounts(sampledProductList, sampledReviewerList, basePath, numOfProducts + "P-" + numOfReviewers + "R-"  + outputFilePrefix);
+		
 		endTime = System.nanoTime();
 		duration = (endTime - startTime) / 1000000 / 1000;
 		System.out.println("Sampled " + sampledReviewerList.size() + " reviewers of those products in " + duration + " seconds.");
+		
+		/*
 
 		//----------------------------READ, SORT, and WRITE DETAILED RECORDS OF REVIEWS OF THE SAMPLED PRODUCTS BY THE SAMPLED REVIEWERS-----------------------------------------------		
 		startTime = System.nanoTime();
@@ -292,6 +365,37 @@ public class Main {
 			e.printStackTrace();
 		}
 
+	}
+	
+	public static void outputFinalCSVFromReviewerCounts(ArrayList<ProductCount>  sampledProductList, ArrayList<ReviewerCount>  sampledReviewerList, String basePath, String outputFilePrefix) {
+
+		CsvWriter csvOutput;
+		try {
+			csvOutput = new CsvWriter(new FileWriter(basePath + outputFilePrefix + "-FINAL.csv"), ',');
+			// OutputHeader
+			for (ProductCount pc : sampledProductList) {
+				csvOutput.write(pc.productTitle);
+			}
+			csvOutput.endRecord();
+			//Output each record
+
+			for (ReviewerCount rc : sampledReviewerList) {
+				for (ProductCount pc : sampledProductList) {
+					if (rc.productsReviewed.containsKey(pc.productID)) {
+						csvOutput.write(rc.productsReviewed.get(pc.productID));
+					}
+					else {
+						csvOutput.write("0");
+					}
+				}
+				csvOutput.endRecord();
+			}
+		
+			csvOutput.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
 	}
 	
 	public static void outputFinalCSV(ArrayList<ProductRecord> sortedProductRecords, ArrayList<ReviewerCount>  sampledReviewerList, String basePath, String outputFilePrefix) {
@@ -388,14 +492,20 @@ public class Main {
 							.replaceAll("^product/title:", "")
 							.replaceAll(non_printable.pattern(), "")
 							.trim();
+					String userID = br.readLine()
+							.replaceAll("^review/userId:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
 					
 					String cleanedProductTitle = getCleanTitle(productTitle);
 					
 					if (!productTitle.equals("")) {
 						if (!counts.containsKey(productID)) {
-							counts.put(productID, new ProductCount(productID, productTitle, cleanedProductTitle, 1));
+							counts.put(productID, new ProductCount(productID, productTitle, cleanedProductTitle, 1, userID));
 						} else {
-							counts.get(productID).reviewCount++;
+							if (!counts.get(productID).usersReviewedBy.contains(userID)) {
+								counts.get(productID).reviewCount++;
+								counts.get(productID).usersReviewedBy.add(userID);
+							}
 						}
 					}
 				}
@@ -422,6 +532,8 @@ public class Main {
 			startField = Pattern.compile("^product/productId:");
 			Pattern non_printable = Pattern.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
 
+			HashMap<String, ProductRecord> records = new HashMap<String, ProductRecord>();
+			
 			while ((line = br.readLine()) != null) {
 				if (startField.matcher(line).find()) {
 					String productID = line
@@ -431,34 +543,29 @@ public class Main {
 							.replaceAll("^product/title:", "")
 							.replaceAll(non_printable.pattern(), "")
 							.trim();
-					// Skip price
-					br.readLine();
 					String userID = br.readLine()
 							.replaceAll("^review/userId:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
 					String profileName = br.readLine()
 							.replaceAll("^review/profileName:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					
-					/*
-					String cleanedProductTitle = productTitle
-							.replaceAll("and|&|:|;", " ")
-							.replaceAll("[ \t\n\r]+", " ")
-							.toLowerCase().trim();
-					*/
-					
-					
+					String helpfulness = br.readLine()
+							.replaceAll("^review/helpfulness:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+					String rating = br.readLine()
+							.replaceAll("^review/score:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+
 					// Skip if its unknown
 					if (!userID.equals("unknown")) {
 						if (products.containsKey(productID)) {
 							if (!counts.containsKey(userID)) {
-								counts.put(userID, new ReviewerCount(userID, profileName, 1, productID));
+								counts.put(userID, new ReviewerCount(userID, profileName, 1, productID, rating));
 							} else {
-								if (!counts.get(userID).productsReviewed.contains(productID)) {
+								if (!counts.get(userID).productsReviewed.containsKey(productID)) {
 									counts.get(userID).reviewCount++;
-									counts.get(userID).productsReviewed.add(productID);
+									counts.get(userID).productsReviewed.put(productID, rating);
 								}
-
 								//System.out.println(counts.get(userID));
 							}
 						}
@@ -490,9 +597,10 @@ public class Main {
 			Pattern non_printable = Pattern
 					.compile("[\\x00\\x08\\x0B\\x0C\\x0E-\\x1F]|[\\\",#]");
 
-			String[] record = new String[10];
+			//String[] record = new String[10];
 			while ((line = br.readLine()) != null) {
 				if (startField.matcher(line).find()) {
+					/*
 					record[0] = line;
 					for (int i = 1; i < 10; i++) {
 						line = br.readLine();
@@ -502,24 +610,28 @@ public class Main {
 							record[i] = line;
 						}
 					}
+					*/
 
-					String productID = record[0]
+					String productID = line
 							.replaceAll(startField.pattern(), "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					String productTitle = record[1]
+					String productTitle = br.readLine()
 							.replaceAll("^product/title:", "")
 							.replaceAll(non_printable.pattern(), "")
 							.trim();
-					String userID = record[3]
+					String userID = br.readLine()
 							.replaceAll("^review/userId:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					String rating = record[6]
-							.replaceAll("^review/score:", "")
+					String profileName = br.readLine()
+							.replaceAll("^review/profileName:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					String helpfulness = record[5]
+					String helpfulness = br.readLine()
 							.replaceAll("^review/helpfulness:", "")
 							.replaceAll(non_printable.pattern(), "").trim();
-					
+					String rating = br.readLine()
+							.replaceAll("^review/score:", "")
+							.replaceAll(non_printable.pattern(), "").trim();
+
 					
 					String cleanedProductTitle = getCleanTitle(productTitle);
 					
@@ -534,6 +646,8 @@ public class Main {
 							}
 						}
 					}
+					
+					
 				}
 			}
 			br.close();
@@ -546,7 +660,7 @@ public class Main {
 	public static String getCleanTitle(String title) {
 		String cleanedProductTitle = title.toLowerCase()
 				//.replaceAll("and|the|of|a|or|edition|&|isbn|:.*|;.*|-.*", ""
-				.replaceAll("and|the|of|a|or|edition|&|isbn|volume", "")
+				.replaceAll("and|^the|of|or|edition|&|isbn|volume|[\\:]|[\\;]|[\\.]|[\\-]|[\\$]|[\\@]|[\\!]|[\\`]|[\\~]|[\\?]|'|,", "")
 				.replaceAll("[ \t\n\r]+", "")
 				.replaceAll("([\\(\\[].*[\\)\\]])+", "")
 				.trim();
@@ -596,12 +710,15 @@ class ProductCount implements Comparable<ProductCount> {
 	String productTitle;
 	String cleanTitle;
 	int reviewCount;
+	HashSet<String> usersReviewedBy;
 
-	public ProductCount(String productID, String productTitle, String cleanTitle, int reviewCount) {
+	public ProductCount(String productID, String productTitle, String cleanTitle, int reviewCount, String firstUserID) {
 		this.productID = productID;
 		this.productTitle = productTitle;
 		this.cleanTitle = cleanTitle;
 		this.reviewCount = reviewCount;
+		this.usersReviewedBy = new HashSet<String>();
+		usersReviewedBy.add(firstUserID);
 	}
 
 	public int compareTo(ProductCount that) {
@@ -623,11 +740,13 @@ class ProductCount implements Comparable<ProductCount> {
 	}
 	
 	public boolean similar(ProductCount other) {
-		return cleanTitle.equals(other.cleanTitle) || 
+		return cleanTitle.equals(other.cleanTitle) || (cleanTitle.contains(other.cleanTitle) || other.cleanTitle.contains(cleanTitle) && this.reviewCount == other.reviewCount);
+		/*
 				(
 						(cleanTitle.contains(other.cleanTitle) || other.cleanTitle.contains(cleanTitle)) && 
-						(LevenshteinDistance(cleanTitle, other.cleanTitle) < Math.min(cleanTitle.length(), other.cleanTitle.length()))
+						(LevenshteinDistance(cleanTitle, other.cleanTitle) < Math.min(10, (Math.min(cleanTitle.length(), other.cleanTitle.length() / 2))))
 				);
+				*/
 	}
 	
 	public int LevenshteinDistance (String s0, String s1) {                          
@@ -675,14 +794,15 @@ class ReviewerCount implements Comparable<ReviewerCount> {
 	String userID;
 	String profileName;
 	int reviewCount;
-	HashSet<String> productsReviewed;
+	// ProductId to rating
+	HashMap<String, String> productsReviewed;
 
-	public ReviewerCount(String userID, String profileName, int reviewCount, String firstProduct) {
+	public ReviewerCount(String userID, String profileName, int reviewCount, String firstProductID, String firstProductRating) {
 		this.userID = userID;
 		this.profileName = profileName;
 		this.reviewCount = reviewCount;
-		productsReviewed = new HashSet<String>();
-		productsReviewed.add(firstProduct);
+		productsReviewed = new HashMap<String, String>();
+		productsReviewed.put(firstProductID, firstProductRating);
 	}
 
 	public int compareTo(ReviewerCount that) {
