@@ -1,3 +1,4 @@
+package clustering;
 /*
  * amazon <- read.csv("output.csv")
  * str(books)

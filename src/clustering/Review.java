@@ -1,3 +1,4 @@
+package clustering;
 class Review implements Comparable<Review> {
 	String userID;
 	String rating;
