@@ -61,10 +61,16 @@ public class UVDecomp {
 			
 			double rmsle = 0;
 			for (IntegerRating target : fold) {
-				rmsle += Math.log(target.ratingValue) - Math.log(predict(target.userId, target.productId));
+				double error =  Math.log(target.ratingValue) - Math.log(predict(target.userId, target.productId));
+				rmsle += error * error;
 			}
+			System.out.println("Before division " + rmsle + " " + fold.size() );
 			rmsle /= fold.size();
+			System.out.println("after division " + rmsle + " " + fold.size() );
 			rmsle = Math.sqrt(rmsle);
+			System.out.println("after sqrt " + rmsle + " " + fold.size() );
+			
+			System.out.println(rmsle);
 			sumOfRMSLE += rmsle;
 			if (sumOfRMSLE < 0) {
 				System.out.println("Overflow? " + sumOfRMSLE);
@@ -75,6 +81,60 @@ public class UVDecomp {
 		}
 		
 		return sumOfRMSLE / folds.size();
+	}
+	
+	public double crossValidateAndReturnAccuracy(ArrayList<IntegerRating> ratings, int numberOfFolds) {
+		allRatings = ratings;
+		Collections.shuffle(allRatings);
+		
+		
+		int ratingsPerFold = allRatings.size() / numberOfFolds;
+		
+		ArrayList<HashSet<IntegerRating>> folds = new ArrayList<HashSet<IntegerRating>>();
+		int i;
+		HashSet<IntegerRating> tmp = new HashSet<IntegerRating>();
+		for (i = 0; i < numberOfFolds-1; i++) {
+			tmp = new HashSet<IntegerRating>();
+			tmp.addAll(allRatings.subList(i * ratingsPerFold, (i+1) * ratingsPerFold));
+			folds.add(tmp);
+			//System.out.println("created fold " + i + " " + folds.get(i).size());
+		}
+		tmp = new HashSet<IntegerRating>();
+		tmp.addAll(allRatings.subList(i * ratingsPerFold, allRatings.size()));
+		folds.add(tmp);
+		//System.out.println("created fold " + i + " " + folds.get(i).size());
+		
+		double sumOfAccuracy = 0.0;
+		
+		i=0;
+		for (HashSet<IntegerRating> fold : folds) {
+			StopWatch watch = new StopWatch().start();
+			
+			buildAndTrainNewModel(fold);
+			
+			System.out.println("Build of model for fold " + i + " finished in " + watch.getElapsedSeconds());
+			
+			double accuracy = 0;
+			for (IntegerRating target : fold) {
+				double prediction = predict(target.userId, target.productId);
+				if (prediction < 1) prediction = 1;
+				if (prediction > 5) prediction = 5;
+				if (target.ratingValue == prediction) {
+					accuracy++;
+				}
+			}
+			accuracy /= fold.size();
+
+			sumOfAccuracy += accuracy;
+			if (sumOfAccuracy < 0) {
+				System.out.println("Overflow? " + sumOfAccuracy);
+			}
+			
+			System.out.println("Cross-val of fold " + i + " finished in " + watch.getElapsedSeconds() + " with accuracy " + accuracy);
+			i++;
+		}
+		
+		return sumOfAccuracy / folds.size();
 	}
 	
 	private void buildAndTrainNewModel(HashSet<IntegerRating> leaveOutForPrediction, int maxFeatures, int maxEpochs, double learningRate, double correction) {
