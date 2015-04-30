@@ -64,17 +64,11 @@ public class UVDecomp {
 				double error =  Math.log(target.ratingValue) - Math.log(predict(target.userId, target.productId));
 				rmsle += error * error;
 			}
-			System.out.println("Before division " + rmsle + " " + fold.size() );
 			rmsle /= fold.size();
-			System.out.println("after division " + rmsle + " " + fold.size() );
 			rmsle = Math.sqrt(rmsle);
-			System.out.println("after sqrt " + rmsle + " " + fold.size() );
 			
 			System.out.println(rmsle);
 			sumOfRMSLE += rmsle;
-			if (sumOfRMSLE < 0) {
-				System.out.println("Overflow? " + sumOfRMSLE);
-			}
 			
 			System.out.println("Cross-val of fold " + i + " finished in " + watch.getElapsedSeconds() + " with rmsle " + rmsle);
 			i++;
