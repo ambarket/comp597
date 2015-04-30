@@ -66,6 +66,9 @@ public class UVDecomp {
 			rmsle /= fold.size();
 			rmsle = Math.sqrt(rmsle);
 			sumOfRMSLE += rmsle;
+			if (sumOfRMSLE < 0) {
+				System.out.println("Overflow? " + sumOfRMSLE);
+			}
 			
 			System.out.println("Cross-val of fold " + i + " finished in " + watch.getElapsedSeconds() + " with rmsle " + rmsle);
 			i++;
@@ -156,7 +159,6 @@ public class UVDecomp {
 					//System.out.println("Updated value in " + watch2.getElapsedNanoSeconds());
 
 					//System.out.println(oldUserValue + " " + oldProdValue + " " + newUserValue + " " + newProdValue);
-					
 				}
 			}
 			

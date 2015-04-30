@@ -65,7 +65,6 @@ class NaiveBayes {
 	public void buildModel(ArrayList<IntegerRating> allRatings, HashSet<IntegerRating> leaveOutForPrediction) {
 		productToRatingsMap = new HashMap<Integer, HashSet<IntegerRating>>();
 		userToRatingsMap = new HashMap<Integer, HashSet<IntegerRating>>();
-		//trainingRatings = new IntegerRating[FinalAssignment.NUMBER_OF_PRODUCTS][6][];//new HashMap <String, HashMap<String, Integer>>();
 		
 		// values are userIds that rated the product with value
 		trainingRatings = new int[FinalAssignment.NUMBER_OF_PRODUCTS][6][];//new HashMap <String, HashMap<String, Integer>>();

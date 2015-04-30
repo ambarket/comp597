@@ -7,8 +7,8 @@ public class FinalAssignment {
 
 	static String BASE_PATH = "C:\\Users\\ambar_000\\Desktop\\597\\Amazon dataset\\Books\\";
 	
-	static int NUMBER_OF_USERS = 10000;
-	static int NUMBER_OF_PRODUCTS = 1000;
+	static int NUMBER_OF_USERS = 1000;
+	static int NUMBER_OF_PRODUCTS = 100;
 	
 	static String MOST_REVIEWED = "Books-" + NUMBER_OF_PRODUCTS + "-most-reviewed.txt";
 	
@@ -30,13 +30,13 @@ public class FinalAssignment {
 		
 		
 				
-		//UVDecomp uvd = new UVDecomp();
-		//double rmsle = uvd.crossValidateAndReturnRMSLE(allRatings, 10);
-		//System.out.println("UVDecomp rmsle: " + rmsle);
+		UVDecomp uvd = new UVDecomp();
+		double rmsle = uvd.crossValidateAndReturnRMSLE(allRatings, 10);
+		System.out.println("UVDecomp rmsle: " + rmsle);
 		
-		NaiveBayes naiveBayes = new NaiveBayes();
-		double naiveBayesAccuracy = naiveBayes.crossValidateAndReturnAccuracy(allRatings, 10);
-		System.out.println("NaiveBayes accuracy: " + naiveBayesAccuracy);
+		//NaiveBayes naiveBayes = new NaiveBayes();
+		//double naiveBayesAccuracy = naiveBayes.crossValidateAndReturnAccuracy(allRatings, 10);
+		//System.out.println("NaiveBayes accuracy: " + naiveBayesAccuracy);
 		
 		System.out.println("Ran in " + watch.getElapsedSeconds() + " seconds.");
 	}
