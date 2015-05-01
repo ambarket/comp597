@@ -11,27 +11,22 @@ public class UVDecomp {
 	double LEARNING_RATE = 0.001;
 	double CORRECTION = 0.02;	// What should this be?
 	
+	// Create these onse since size doesn't change
+	double[][] userFeature = new double[MAX_FEATURES][FinalAssignment.NUMBER_OF_USERS];
+	double[][] productFeature = new double[MAX_FEATURES][FinalAssignment.NUMBER_OF_PRODUCTS];
 	
-	// Map feature number to a map of userId to value
-	//HashMap<Integer, HashMap<String, Double>> userFeature;
-	double[][] userFeature;
-	// Map feature number to a map of productId to value
-	//HashMap<Integer, HashMap<String, Double>> productFeature;
-	double[][] productFeature;
+	// Maybe a waste of space, all that really used is ratingBaseLines but shouldn't be too bad.
+	double[] productCorrectedAverages = new double[FinalAssignment.NUMBER_OF_PRODUCTS];
+	double[] averageRatingOffsets = new double[FinalAssignment.NUMBER_OF_USERS];
+	double[][] ratingBaseLines =  new double[FinalAssignment.NUMBER_OF_PRODUCTS][FinalAssignment.NUMBER_OF_USERS];
 	
-	// FinalAssignment.allRatings - leaveOutForPrediction
-	ArrayList<IntegerRating> allRatings;
-	HashSet<IntegerRating> trainingRatings;
-	HashMap<Integer, HashSet<IntegerRating>>  trainingUserRatings;
-	
-	HashMap<Integer, SumCountAverage> productSumCountAverages;
-	//HashMap<String, Double>  trainingProductRatings;
 	double globalAverage;
 	
-	public double crossValidateAndReturnRMSLE(ArrayList<IntegerRating> ratings, int numberOfFolds) {
-		allRatings = ratings;
+	// FinalAssignment.allRatings - leaveOutForPrediction
+	HashSet<IntegerRating> trainingRatings;
+	
+	public double crossValidateAndReturnRMSE(ArrayList<IntegerRating> allRatings, int numberOfFolds) {
 		Collections.shuffle(allRatings);
-		
 		
 		int ratingsPerFold = allRatings.size() / numberOfFolds;
 		
@@ -42,45 +37,153 @@ public class UVDecomp {
 			tmp = new HashSet<IntegerRating>();
 			tmp.addAll(allRatings.subList(i * ratingsPerFold, (i+1) * ratingsPerFold));
 			folds.add(tmp);
-			//System.out.println("created fold " + i + " " + folds.get(i).size());
 		}
 		tmp = new HashSet<IntegerRating>();
 		tmp.addAll(allRatings.subList(i * ratingsPerFold, allRatings.size()));
 		folds.add(tmp);
-		//System.out.println("created fold " + i + " " + folds.get(i).size());
 		
-		double sumOfRMSLE = 0.0;
+		double sumOfRMSE = 0.0;
 		
 		i=0;
-		for (HashSet<IntegerRating> fold : folds) {
-			StopWatch watch = new StopWatch().start();
+		StopWatch watch = new StopWatch().start();
+		for (HashSet<IntegerRating> leaveOutForPrediction : folds) {
+			buildAndTrainNewModel(allRatings, leaveOutForPrediction);
 			
-			buildAndTrainNewModel(fold);
-			
-			System.out.println("Build of model for fold " + i + " finished in " + watch.getElapsedSeconds());
-			
-			double rmsle = 0;
-			for (IntegerRating target : fold) {
-				double error =  Math.log(target.ratingValue) - Math.log(predict(target.userId, target.productId));
-				rmsle += error * error;
+			double rmse = 0;
+			for (IntegerRating target : leaveOutForPrediction) {
+				double error =  target.ratingValue - predict(target.userId, target.productId);
+				rmse += error * error;
 			}
-			rmsle /= fold.size();
-			rmsle = Math.sqrt(rmsle);
+			rmse /= leaveOutForPrediction.size();
+			rmse = Math.sqrt(rmse);
+			sumOfRMSE += rmse;
 			
-			System.out.println(rmsle);
-			sumOfRMSLE += rmsle;
-			
-			System.out.println("Cross-val of fold " + i + " finished in " + watch.getElapsedSeconds() + " with rmsle " + rmsle);
+			System.out.println("Cross-val of fold " + i + " finished after " + watch.getElapsedSeconds() + " with RMSE " + rmse);
 			i++;
 		}
 		
-		return sumOfRMSLE / folds.size();
+		return sumOfRMSE / folds.size();
 	}
 	
-	public double crossValidateAndReturnAccuracy(ArrayList<IntegerRating> ratings, int numberOfFolds) {
-		allRatings = ratings;
-		Collections.shuffle(allRatings);
+	private void buildAndTrainNewModel(ArrayList<IntegerRating> allRatings, HashSet<IntegerRating> leaveOutForPrediction) {
 		
+		trainingRatings = new HashSet<IntegerRating>();
+		globalAverage = 0.0;
+		HashMap<Integer, HashSet<IntegerRating>> trainingUserRatings = new HashMap<Integer, HashSet<IntegerRating>>();
+		HashMap<Integer, SumCountAverage> productSumCountAverages = new HashMap<Integer, SumCountAverage>();
+
+		for (IntegerRating rating : allRatings) {
+			if (!leaveOutForPrediction.contains(rating)) {
+				trainingRatings.add(rating);
+				
+				if (!trainingUserRatings.containsKey(rating.userId)) {
+					trainingUserRatings.put(rating.userId, new HashSet<IntegerRating>());
+				}
+				trainingUserRatings.get(rating.userId).add(rating);
+
+				if (!productSumCountAverages.containsKey(rating.productId)) {
+					productSumCountAverages.put(rating.productId, new SumCountAverage(0,0));
+				}
+				productSumCountAverages.get(rating.productId).addValue(rating.ratingValue);
+				
+				globalAverage += rating.ratingValue;
+			}
+		}
+		
+		globalAverage /= trainingRatings.size();
+		
+		precomputeRatingBaselines(productSumCountAverages, trainingUserRatings);
+
+		// Reset the feature vectors to 0.
+		for (int feature = 0; feature < MAX_FEATURES; feature++) {
+			for (int user = 0; user < FinalAssignment.NUMBER_OF_USERS; user++) {
+				userFeature[feature][user] = 0;
+			}
+			
+			for (int product = 0; product < FinalAssignment.NUMBER_OF_PRODUCTS; product++) {
+				productFeature[feature][product] = 0;
+			}
+		}
+		
+		//System.out.println("Users: " + trainingUserRatings.keySet().size());
+		//System.out.println("Products: " + productSumCountAverages.keySet().size());
+		
+		trainModel();
+	}
+	
+	private void precomputeRatingBaselines(HashMap<Integer, SumCountAverage> productSumCountAverages, HashMap<Integer, HashSet<IntegerRating>> trainingUserRatings) {
+		// Precompute corrected product averages for all users
+		for (int i = 0; i < FinalAssignment.NUMBER_OF_PRODUCTS; i++) {
+			if (productSumCountAverages.containsKey(i)) {
+				productCorrectedAverages[i] = productSumCountAverages.get(i).getCorrectedAvg(globalAverage, CORRECTION); 
+			} else {
+				productCorrectedAverages[i] = 0;
+			}
+		}
+		
+		// Precompute averageRatingOffsets for all users
+		for (int userId = 0; userId < FinalAssignment.NUMBER_OF_USERS; userId++) {
+			averageRatingOffsets[userId] = 0.0;
+			if (trainingUserRatings.get(userId).size() > 0) {
+				for (IntegerRating rating : trainingUserRatings.get(userId)) {
+					averageRatingOffsets[userId] += productCorrectedAverages[rating.productId] - rating.ratingValue;
+				}
+				
+				 averageRatingOffsets[userId] /= trainingUserRatings.get(userId).size();
+			}
+		}
+		
+		// Precompute rating baselines for all product-user pairs
+		for (int productId = 0; productId < FinalAssignment.NUMBER_OF_PRODUCTS; productId++) {
+			for (int userId = 0; userId < FinalAssignment.NUMBER_OF_USERS; userId++) {
+				ratingBaseLines[productId][userId] = productCorrectedAverages[productId] + averageRatingOffsets[userId];
+			}
+		}
+	}
+	
+	private void trainModel() {		
+		StopWatch watch = new StopWatch().start();
+		for (int feature = 0; feature < MAX_FEATURES; feature++) {
+			for (int user = 0; user < FinalAssignment.NUMBER_OF_USERS; user++) {
+				userFeature[feature][user] = 0.1;
+			}
+			for (int product = 0; product < FinalAssignment.NUMBER_OF_PRODUCTS; product++) {
+				productFeature[feature][product] = 0.1;
+			}
+			
+			for (int epoch = 0; epoch < MAX_EPOCHS; epoch++) {
+				for (IntegerRating rating : trainingRatings) {
+					double err = rating.ratingValue - predict(rating.userId, rating.productId);
+					double oldUserValue = userFeature[feature][rating.userId];
+					double oldProdValue = productFeature[feature][rating.productId];
+					
+					userFeature[feature][rating.userId] += (LEARNING_RATE * (err * oldProdValue - CORRECTION * oldUserValue)) ;
+					productFeature[feature][rating.productId] += (LEARNING_RATE * (err * oldUserValue - CORRECTION * oldProdValue)) ;
+				}
+			}
+		}
+	}
+	
+	public double predict(int userId, int productId) {
+		// User or product isn't in the training set we have no information to base a prediction on.
+		if (averageRatingOffsets[userId] == 0 || productCorrectedAverages[productId] == 0) {
+			return globalAverage;
+		}
+		
+		double retval = ratingBaseLines[productId][userId];
+		
+		for (int feature = 0; feature < MAX_FEATURES; feature++)  {
+			retval += userFeature[feature][userId] * productFeature[feature][productId];
+		}
+		
+		if (retval > 5) { retval = 5; }
+		if (retval < 1) { retval = 1; }
+		return retval;
+	}
+	
+	/* OLD METHODS
+	public double crossValidateAndReturnAccuracy(ArrayList<IntegerRating> allRatings, int numberOfFolds) {
+		Collections.shuffle(allRatings);
 		
 		int ratingsPerFold = allRatings.size() / numberOfFolds;
 		
@@ -139,117 +242,5 @@ public class UVDecomp {
 		
 		buildAndTrainNewModel(leaveOutForPrediction);
 	}
-	
-	private void buildAndTrainNewModel(HashSet<IntegerRating> leaveOutForPrediction) {
-		System.out.println("Starting to build model");
-		
-		trainingRatings = new HashSet<IntegerRating>();
-		// Make calculation of average rating offset by user easier.
-		trainingUserRatings = new HashMap<Integer, HashSet<IntegerRating>> ();
-		globalAverage = 0.0;
-
-		// Make it easier and faster to get the corrected averages of a given product's ratings.
-		productSumCountAverages = new HashMap<Integer, SumCountAverage>();
-		for (IntegerRating rating : allRatings) {
-
-			if (!leaveOutForPrediction.contains(rating)) {
-				trainingRatings.add(rating);
-				
-				if (!trainingUserRatings.containsKey(rating.userId)) {
-					trainingUserRatings.put(rating.userId, new HashSet<IntegerRating>());
-				}
-				trainingUserRatings.get(rating.userId).add(rating);
-
-				if (!productSumCountAverages.containsKey(rating.productId)) {
-					productSumCountAverages.put(rating.productId, new SumCountAverage(0,0));
-				}
-				productSumCountAverages.get(rating.productId).addValue(rating.ratingValue);
-				
-				globalAverage += rating.ratingValue;
-			}
-		}
-		
-		System.out.println("Users: " + trainingUserRatings.keySet().size());
-		System.out.println("Products: " + productSumCountAverages.keySet().size());
-		
-		globalAverage /= trainingRatings.size();
-
-		
-		userFeature = new double[MAX_FEATURES][FinalAssignment.NUMBER_OF_USERS];
-		productFeature = new double[MAX_FEATURES][FinalAssignment.NUMBER_OF_PRODUCTS];
-		for (int i = 0; i < MAX_FEATURES; i++) {
-			for (int user = 0; user < FinalAssignment.NUMBER_OF_USERS; user++) {
-				userFeature[i][user] = 0.1;
-			}
-			
-			for (int product = 0; product < FinalAssignment.NUMBER_OF_PRODUCTS; product++) {
-				productFeature[i][product] = 0.1;
-			}
-		}	
-
-		trainModel();
-
-	}
-	
-	private void trainModel() {		
-		System.out.println("Starting to train model");
-		StopWatch watch = new StopWatch().start();
-		for (int feature = 0; feature < MAX_FEATURES; feature++) {
-			double[] userValues = userFeature[feature];
-			double[] productValues = productFeature[feature];
-			
-			for (int epoch = 0; epoch < MAX_EPOCHS; epoch++) {
-				for (IntegerRating rating : trainingRatings) {
-					double err = rating.ratingValue - predict(rating.userId, rating.productId);
-					
-					StopWatch watch2 = new StopWatch().start();
-					
-					double oldUserValue = userValues[rating.userId];
-					double oldProdValue = productValues[rating.productId];
-					
-					userValues[rating.userId] += (LEARNING_RATE * (err * oldProdValue - CORRECTION * oldUserValue)) ;
-					productValues[rating.productId] += (LEARNING_RATE * (err * oldUserValue - CORRECTION * oldProdValue)) ;
-					
-					//System.out.println("Updated value in " + watch2.getElapsedNanoSeconds());
-
-					//System.out.println(oldUserValue + " " + oldProdValue + " " + newUserValue + " " + newProdValue);
-				}
-			}
-			
-			System.out.println("Trained " + feature + " features in " + watch.getElapsedSeconds());
-		}
-		System.out.println("Finished training model");
-	}
-	
-	public double predict(int userId, int productId) {
-		// User or product isn't in the training set we have no information to base a prediction on.
-		if (!trainingUserRatings.containsKey(userId) || !productSumCountAverages.containsKey(productId)) {
-			return globalAverage;
-		}
-		
-		
-		double retval = getRatingBaseline(userId, productId);
-		
-		for (int feature = 0; feature < MAX_FEATURES; feature++)  {
-			retval += userFeature[feature][userId] * productFeature[feature][productId];
-		}
-		
-		if (retval > 5) { retval = 5; }
-		if (retval < 1) { retval = 1; }
-		return retval;
-	}
-
-	private double getRatingBaseline(int userId, int productId) {
-		return productSumCountAverages.get(productId).getCorrectedAvg(globalAverage, CORRECTION) + getAverageRatingOffsetOfUser(userId);
-	}
-	
-	private double getAverageRatingOffsetOfUser(int userId) {
-		double sum = 0.0;
-		
-		for (IntegerRating rating : trainingUserRatings.get(userId)) {
-			sum += productSumCountAverages.get(rating.productId).getCorrectedAvg(globalAverage, CORRECTION) - rating.ratingValue;
-		}
-		
-		return sum / trainingUserRatings.get(userId).size();
-	}
+	*/
 }

@@ -14,7 +14,7 @@ class NaiveBayes {
 	
 	double globalAverage;
 	
-	public double crossValidateAndReturnAccuracy(ArrayList<IntegerRating> allRatings, int numberOfFolds) {
+	public double crossValidateAndReturnRMSE(ArrayList<IntegerRating> allRatings, int numberOfFolds) {
 		Collections.shuffle(allRatings);
 		
 		int ratingsPerFold = allRatings.size() / numberOfFolds;
@@ -26,40 +26,32 @@ class NaiveBayes {
 			tmp = new HashSet<IntegerRating>();
 			tmp.addAll(allRatings.subList(i * ratingsPerFold, (i+1) * ratingsPerFold));
 			folds.add(tmp);
-			//System.out.println("created fold " + i + " " + folds.get(i).size());
 		}
 		tmp = new HashSet<IntegerRating>();
 		tmp.addAll(allRatings.subList(i * ratingsPerFold, allRatings.size()));
 		folds.add(tmp);
-		//System.out.println("created fold " + i + " " + folds.get(i).size());
 		
-		double sumOfAccuracy = 0.0;
+		double sumOfRMSE = 0.0;
 		
-		StopWatch watch = new StopWatch();
+		StopWatch watch = new StopWatch().start();;
 		i = 0;
 		for (HashSet<IntegerRating> leaveOutForPrediction : folds) {			
-			watch.start();
-			
 			buildModel(allRatings, leaveOutForPrediction);
 			
-			// Make prediction for all the left out ratings. 
-			int correct = 0;
+			double rmse = 0;
 			for (IntegerRating target : leaveOutForPrediction) {
-				watch.start();
-				int prediction = predict(target.userId, target.productId);
-				//System.out.println("Actual: " + target.ratingValue + " Prediction: " + prediction );
-				if (target.ratingValue == prediction) {
-					correct++;
-				}
-				//System.out.println("Finished prediction " + i + " in " + watch.getElapsedSeconds() + " seconds.");
+				double error =  target.ratingValue - predict(target.userId, target.productId);
+				rmse += error * error;
 			}
-			//System.out.println("Correct: " + correct + " Predicted: " + leaveOutForPrediction.size() );
-			sumOfAccuracy += correct / (double)leaveOutForPrediction.size();
+			rmse /= leaveOutForPrediction.size();
+			rmse = Math.sqrt(rmse);
+			sumOfRMSE += rmse;
 			
-			System.out.println("Finished fold " + i + " in " + watch.getElapsedSeconds() + " seconds.");
+			System.out.println("Cross-val of fold " + i + " finished after " + watch.getElapsedSeconds() + "seconds with RMSE " + rmse);
+			i++;
 		}
 		
-		return sumOfAccuracy / folds.size();
+		return sumOfRMSE / folds.size();
 	}
 	
 	public void buildModel(ArrayList<IntegerRating> allRatings, HashSet<IntegerRating> leaveOutForPrediction) {
@@ -120,7 +112,6 @@ class NaiveBayes {
 	public int predict(int userId, int productId) {
 		// User isn't in the training set we have no information to base a prediction on.
 		if (!productToRatingsMap.containsKey(productId) || !userToRatingsMap.containsKey(userId)) {
-			System.out.println("Just returning global average");
 			return (int)Math.round(globalAverage);
 		}
 		
@@ -197,4 +188,54 @@ class NaiveBayes {
 		//System.out.println("Finished getCondProb in " + watch.getElapsedSeconds() + " seconds." + conditionalCount + "/" + givenCount);
 		return conditionalCount / givenCount;
 	}
+	
+	/* OLD METHODS
+	public double crossValidateAndReturnAccuracy(ArrayList<IntegerRating> allRatings, int numberOfFolds) {
+		Collections.shuffle(allRatings);
+		
+		int ratingsPerFold = allRatings.size() / numberOfFolds;
+		
+		ArrayList<HashSet<IntegerRating>> folds = new ArrayList<HashSet<IntegerRating>>();
+		int i;
+		HashSet<IntegerRating> tmp = new HashSet<IntegerRating>();
+		for (i = 0; i < numberOfFolds-1; i++) {
+			tmp = new HashSet<IntegerRating>();
+			tmp.addAll(allRatings.subList(i * ratingsPerFold, (i+1) * ratingsPerFold));
+			folds.add(tmp);
+			//System.out.println("created fold " + i + " " + folds.get(i).size());
+		}
+		tmp = new HashSet<IntegerRating>();
+		tmp.addAll(allRatings.subList(i * ratingsPerFold, allRatings.size()));
+		folds.add(tmp);
+		//System.out.println("created fold " + i + " " + folds.get(i).size());
+		
+		double sumOfAccuracy = 0.0;
+		
+		StopWatch watch = new StopWatch();
+		i = 0;
+		for (HashSet<IntegerRating> leaveOutForPrediction : folds) {			
+			watch.start();
+			
+			buildModel(allRatings, leaveOutForPrediction);
+			
+			// Make prediction for all the left out ratings. 
+			int correct = 0;
+			for (IntegerRating target : leaveOutForPrediction) {
+				watch.start();
+				int prediction = predict(target.userId, target.productId);
+				//System.out.println("Actual: " + target.ratingValue + " Prediction: " + prediction );
+				if (target.ratingValue == prediction) {
+					correct++;
+				}
+				//System.out.println("Finished prediction " + i + " in " + watch.getElapsedSeconds() + " seconds.");
+			}
+			//System.out.println("Correct: " + correct + " Predicted: " + leaveOutForPrediction.size() );
+			sumOfAccuracy += correct / (double)leaveOutForPrediction.size();
+			
+			System.out.println("Finished fold " + i + " in " + watch.getElapsedSeconds() + " seconds.");
+		}
+		
+		return sumOfAccuracy / folds.size();
+	}
+	 */
 }
