@@ -1,5 +1,6 @@
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 
  
@@ -37,6 +38,7 @@ public class FinalAssignment {
 	public static void runCrossValidation() {
 		ArrayList<IntegerRating> allRatings = new ArrayList<IntegerRating>();
 		allRatings.addAll(Preprocessor.readIntegerRatingsFromFile(BASE_PATH, MOST_REVIEWED_AND_MOST_ACTIVE_WITH_INTEGER_IDS));
+		Collections.shuffle(allRatings);
 		
 		NaiveBayes naiveBayes = new NaiveBayes();
 		double naiveBayesRMSE = naiveBayes.crossValidateAndReturnRMSE(allRatings, 3);

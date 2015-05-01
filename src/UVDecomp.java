@@ -26,8 +26,6 @@ public class UVDecomp {
 	HashSet<IntegerRating> trainingRatings;
 	
 	public double crossValidateAndReturnRMSE(ArrayList<IntegerRating> allRatings, int numberOfFolds) {
-		Collections.shuffle(allRatings);
-		
 		int ratingsPerFold = allRatings.size() / numberOfFolds;
 		
 		ArrayList<HashSet<IntegerRating>> folds = new ArrayList<HashSet<IntegerRating>>();

@@ -15,8 +15,6 @@ class NaiveBayes {
 	double globalAverage;
 	
 	public double crossValidateAndReturnRMSE(ArrayList<IntegerRating> allRatings, int numberOfFolds) {
-		Collections.shuffle(allRatings);
-		
 		int ratingsPerFold = allRatings.size() / numberOfFolds;
 		
 		ArrayList<HashSet<IntegerRating>> folds = new ArrayList<HashSet<IntegerRating>>();
