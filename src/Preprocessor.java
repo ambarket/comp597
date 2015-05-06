@@ -95,6 +95,21 @@ public class Preprocessor {
 			e.printStackTrace();
 		}
 	}
+	
+	public static void createFileWithOnlyKRandomProducts(int k, String basePath, String inputFile, String outputFile) {
+		StopWatch watch = new StopWatch().start();
+		
+		System.out.println("Starting to minimize to " + k + " most reviewed products.");
+		
+		HashSet<DataCleanerProduct> products = readProductsFromFile(basePath, inputFile);
+		
+		ArrayList<DataCleanerProduct> sortedProductList = new ArrayList<DataCleanerProduct>(products);
+		Collections.shuffle(sortedProductList);
+		
+		writeProductsToFile(sortedProductList.subList(0, k), basePath, outputFile);
+		
+		System.out.println("Finished minimizing " + products.size() + " products to " + k + " random products in " + watch.getElapsedSeconds() + " seconds");
+	}
 
 	public static void createFileWithOnlyKMostReviewedProducts(int k, String basePath, String inputFile, String outputFile) {
 		StopWatch watch = new StopWatch().start();
@@ -124,6 +139,47 @@ public class Preprocessor {
 		writeUsersToFile(sortedUserList.subList(0, k), basePath, outputFile);
 		
 		System.out.println("Finished minimizing " + users.size() + " users to " + k + " most active users in " + watch.getElapsedSeconds() + " seconds");
+	}
+	
+	// Note at this point we will lose the product titles, doesn't really matter though.
+	public static void createFileWithOnlyKMostReviewedProductsWithEachValue(int k, String basePath, String inputFile, String outputFile) {
+		StopWatch watch = new StopWatch().start();
+		
+		System.out.println("Starting to minimize to " + k + " most reviewed products.");
+		
+		 HashSet<DataCleanerProduct> products = readProductsFromFile(basePath, inputFile);
+		 
+		 ArrayList<DataCleanerProduct> sortedProductList = new ArrayList<DataCleanerProduct>(products);
+		 Collections.sort(sortedProductList);
+		 
+		 ArrayList<DataCleanerProduct> selected = new ArrayList<DataCleanerProduct>();
+		 int[] countRemainingForEachRating = { 0, k, k, k, k, k };
+
+		 for (int rating = 1; rating < 6; rating++) {
+			 for (DataCleanerProduct product : sortedProductList) {
+				 int max = 0, ratingThatMax = 0;
+				 for (int i = 0; i < 6; i++) {
+					 if (product.ratingCounts[rating] > max) {
+						 max = product.ratingCounts[rating];
+						 ratingThatMax = rating;
+					 }
+				 }
+				 if (countRemainingForEachRating[ratingThatMax] > 0) {
+					 countRemainingForEachRating[ratingThatMax]--;
+					 selected.add(product);
+				 }
+			 }
+		 }
+		 
+		 System.out.println("selected: " + selected.size());
+		 for (int i = 0; i < 6; i++) {
+			 System.out.println("Count remaining for: " +  i + " - " + countRemainingForEachRating[i]);
+		 }
+	
+		
+		writeProductsToFile(selected, basePath, outputFile);
+		
+		System.out.println("Finished minimizing " + products.size() + " products to " + k + " most reviewed products in " + watch.getElapsedSeconds() + " seconds");
 	}
 	
 	public static void integerizeUserAndProductIds(String basePath, String inputFile, String outputFile) {
@@ -304,8 +360,9 @@ public class Preprocessor {
 				if (!products.containsKey(components[1])) {
 					products.put(components[1], new DataCleanerProduct(components[1], components[3], false));
 				}
-				
-				products.get(components[1]).ratings.add(new Rating(components[0], components[1], (int)Double.parseDouble(components[2])));
+				int ratingValue = (int)Double.parseDouble(components[2]);
+				products.get(components[1]).ratingCounts[ratingValue]++;
+				products.get(components[1]).ratings.add(new Rating(components[0], components[1], ratingValue));
 			}
 			br.close();
 			
@@ -426,6 +483,8 @@ public class Preprocessor {
 	
 	private static class DataCleanerProduct implements Comparable<DataCleanerProduct>{
 		String productId, title, cleanTitle;
+		
+		int ratingCounts[] = new int[6];
 		
 		HashSet<Rating> ratings;
 		

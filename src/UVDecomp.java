@@ -51,12 +51,14 @@ public class UVDecomp {
 			for (IntegerRating target : leaveOutForPrediction) {
 				double error =  target.ratingValue - predict(target.userId, target.productId);
 				rmse += error * error;
+				System.out.println(error);
 			}
 			rmse /= leaveOutForPrediction.size();
 			rmse = Math.sqrt(rmse);
 			sumOfRMSE += rmse;
 			
-			System.out.println("Cross-val of fold " + i + " finished after " + watch.getElapsedSeconds() + " with RMSE " + rmse);
+			
+			System.out.println("Cross-val of fold " + i + " finished after " + watch.getElapsedSeconds() + " seconds with RMSE " + rmse);
 			i++;
 		}
 		
@@ -87,6 +89,8 @@ public class UVDecomp {
 				globalAverage += rating.ratingValue;
 			}
 		}
+		
+		System.out.println(allRatings.size() + " " + leaveOutForPrediction.size() + " " + trainingRatings.size());
 		
 		globalAverage /= trainingRatings.size();
 		
@@ -122,7 +126,7 @@ public class UVDecomp {
 		// Precompute averageRatingOffsets for all users
 		for (int userId = 0; userId < FinalAssignment.NUMBER_OF_USERS; userId++) {
 			averageRatingOffsets[userId] = 0.0;
-			if (trainingUserRatings.get(userId).size() > 0) {
+			if (trainingUserRatings.containsKey(userId) && trainingUserRatings.get(userId) .size() > 0) {
 				for (IntegerRating rating : trainingUserRatings.get(userId)) {
 					averageRatingOffsets[userId] += productCorrectedAverages[rating.productId] - rating.ratingValue;
 				}
@@ -174,8 +178,8 @@ public class UVDecomp {
 			retval += userFeature[feature][userId] * productFeature[feature][productId];
 		}
 		
-		if (retval > 5) { retval = 5; }
-		if (retval < 1) { retval = 1; }
+		//if (retval > 5) { retval = 5; }
+		//if (retval < 1) { retval = 1; }
 		return retval;
 	}
 	

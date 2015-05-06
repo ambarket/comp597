@@ -40,12 +40,13 @@ class NaiveBayes {
 			for (IntegerRating target : leaveOutForPrediction) {
 				double error =  target.ratingValue - predict(target.userId, target.productId);
 				rmse += error * error;
+				//System.out.println(error);
 			}
 			rmse /= leaveOutForPrediction.size();
 			rmse = Math.sqrt(rmse);
 			sumOfRMSE += rmse;
 			
-			System.out.println("Cross-val of fold " + i + " finished after " + watch.getElapsedSeconds() + "seconds with RMSE " + rmse);
+			System.out.println("Cross-val of fold " + i + " finished after " + watch.getElapsedSeconds() + " seconds with RMSE " + rmse);
 			i++;
 		}
 		
@@ -122,6 +123,37 @@ class NaiveBayes {
 		for (int ratingValue = 1; ratingValue <= 5; ratingValue++) {
 			
 			double sumOfLogProbabilities = Math.log(getProbability(productId, ratingValue));
+			for (IntegerRating rating : userIdReviews) {
+				if (rating.productId != productId) {	
+					//System.out.println("Rating Value: " + ratingValue + " " + Math.log(getConditionalProbability(rating.productId, rating.ratingValue, productId, ratingValue)));
+					sumOfLogProbabilities += Math.log(getConditionalProbability(rating.productId, rating.ratingValue, productId, ratingValue));
+				}
+			}
+
+			if (sumOfLogProbabilities < minOfLogProbabilitySums) {
+				ratingValueThatMinimizesSum = ratingValue;
+				minOfLogProbabilitySums = sumOfLogProbabilities;
+			}
+		}
+
+		return ratingValueThatMinimizesSum;
+	}
+	
+	public int predict2(int userId, int productId) {
+		// User isn't in the training set we have no information to base a prediction on.
+		if (!productToRatingsMap.containsKey(productId) || !userToRatingsMap.containsKey(userId)) {
+			return (int)Math.round(globalAverage);
+		}
+		
+		// Get all product reviews by this user.
+		HashSet<IntegerRating> userIdReviews = userToRatingsMap.get(userId);
+		
+		int ratingValueThatMinimizesSum = 0;
+		double minOfLogProbabilitySums = 0.0;	// log[0,1] < 0
+		
+		for (int ratingValue = 1; ratingValue <= 5; ratingValue++) {
+			
+			double[] sumOfLogProbabilities = Math.log(getProbability(productId, ratingValue));
 			for (IntegerRating rating : userIdReviews) {
 				if (rating.productId != productId) {	
 					//System.out.println("Rating Value: " + ratingValue + " " + Math.log(getConditionalProbability(rating.productId, rating.ratingValue, productId, ratingValue)));
